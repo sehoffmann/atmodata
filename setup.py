@@ -10,7 +10,7 @@ setuptools.setup(
     description='A collection of high performant data loading tools for spatio-temporal ML based on torchdata',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=['test*']),
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: Other/Proprietary License',
