@@ -1,0 +1,77 @@
+name: Run Tests
+on:
+  push:
+    branches:
+      - develop
+    tags:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+        python-version:
+          - 3.8
+          - 3.9
+          - "3.10"
+    steps:
+      - name: Get PyTorch Channel
+        shell: bash
+        run: |
+          if [[ "${{ github.base_ref }}" == release/* ]] || [[ "${{ github.ref }}" == refs/heads/release/* ]] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            PT_CHANNEL="https://download.pytorch.org/whl/test/cpu/torch_test.html"
+          else
+            PT_CHANNEL="https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html"
+          fi
+          echo "value=$PT_CHANNEL" >> $GITHUB_OUTPUT
+        id: pytorch_channel
+      
+      - name: Setup additional system libraries
+        if: startsWith( matrix.os, 'ubuntu' )
+        run: |
+          sudo add-apt-repository multiverse
+          sudo apt update
+          sudo apt install rar unrar libssl-dev libcurl4-openssl-dev zlib1g-dev
+      
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Setup msbuild on Windows
+        if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v1.1
+      
+      - name: Set up Visual Studio shell
+        if: matrix.os == 'windows-latest'
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+      
+      - name: Check out source repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      
+      - name: Install dependencies
+        run: |
+          pip3 install -r requirements.txt
+          pip3 install --pre torch -f "${{ steps.pytorch_channel.outputs.value }}"
+          pip3 install cmake ninja
+          echo "/home/runner/.local/bin" >> $GITHUB_PATH
+      
+      - name: Install Atmodata
+        run: |
+          pip3 install .
+      
+      - name: Install test requirements
+        run: pip3 install -r test/requirements.txt
+      
+      - name: Run Tests
+        run:
+          pytest --no-header -v test
