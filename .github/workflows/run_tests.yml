@@ -12,12 +12,12 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-latest
+          #- macos-latest
           - ubuntu-latest
-          - windows-latest
+          #- windows-latest
         python-version:
-          - 3.8
-          - 3.9
+          #- "3.8"
+          #- "3.9"
           - "3.10"
     steps:
       - name: Get PyTorch Channel
@@ -30,13 +30,6 @@ jobs:
           fi
           echo "value=$PT_CHANNEL" >> $GITHUB_OUTPUT
         id: pytorch_channel
-      
-      - name: Setup additional system libraries
-        if: startsWith( matrix.os, 'ubuntu' )
-        run: |
-          sudo add-apt-repository multiverse
-          sudo apt update
-          sudo apt install rar unrar libssl-dev libcurl4-openssl-dev zlib1g-dev
       
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -60,9 +53,10 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip3 install -r requirements.txt
+          pip3 install --pre torchdata --extra-index-url https://download.pytorch.org/whl/nightly/cpu
           pip3 install --pre torch -f "${{ steps.pytorch_channel.outputs.value }}"
-          pip3 install cmake ninja
+          pip3 install -r requirements.txt
+          
           echo "/home/runner/.local/bin" >> $GITHUB_PATH
       
       - name: Install Atmodata
