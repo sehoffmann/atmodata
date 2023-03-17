@@ -1,3 +1,3 @@
+from . import datapipes
 
-def foobar():
-    print('Hello from atmodata')
+__all__ = ['datapipes']
