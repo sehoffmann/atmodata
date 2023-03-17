@@ -8,7 +8,18 @@ from atmodata.datapipes.iter.xarray import (
     XrVariableGetter,
 )
 
+from atmodata.datapipes.iter.tensor import (
+    ThBatchInterleaver,
+    ThConcatter,
+    ThSplitter,
+    ThToDevice,
+)
+
 __all__ = [
+    'ThBatchInterleaver',
+    'ThConcatter',
+    'ThSplitter',
+    'ThToDevice',
     'XrISelecter',
     'XrLoader',
     'XrMerge',
