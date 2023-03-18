@@ -30,13 +30,12 @@ jobs:
 
       - name: Build wheel
         run: |
-          pip3 install build
-          python3 -m build
+          python3 setup.py bdist_wheel
 
       - name: Upload wheels to github
         uses: actions/upload-artifact@v3
         with:
-          name: atmodata-wheel
+          name: atmodata-wheels
           path: dist/atmodata*.whl
 
   wheel_upload:
@@ -50,7 +49,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v3
         with:
-          name: atmodata-wheel
+          name: atmodata-wheels
       
       - name: Determine if wheel uploading is needed
         run: |
