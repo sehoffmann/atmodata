@@ -19,8 +19,8 @@ def _get_version():
     os_build_version = os.getenv("BUILD_VERSION")
     if os_build_version:
         version = os_build_version
-    elif sha != "Unknown":
-        version += "+" + sha[:7]
+    #elif sha != "Unknown":
+    #    version += "+" + sha[:7]
 
     return version, sha
 
