@@ -40,7 +40,7 @@ jobs:
           path: dist/atmodata*.whl
 
   wheel_upload:
-    if: always() && inputs.branch != '' && inputs.do-upload == true
+    if: inputs.do-upload == true
     needs: [wheel_build]
     runs-on: ubuntu-latest
     outputs:
