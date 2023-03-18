@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop
-    tags:
+    tags:  # ignores tag pushes
 
 jobs:
   test:
@@ -20,46 +20,24 @@ jobs:
           #- "3.9"
           - "3.10"
     steps:
-      - name: Get PyTorch Channel
-        shell: bash
-        run: |
-          if [[ "${{ github.base_ref }}" == release/* ]] || [[ "${{ github.ref }}" == refs/heads/release/* ]] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            PT_CHANNEL="https://download.pytorch.org/whl/test/cpu/torch_test.html"
-          else
-            PT_CHANNEL="https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html"
-          fi
-          echo "value=$PT_CHANNEL" >> $GITHUB_OUTPUT
-        id: pytorch_channel
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
       
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       
-      - name: Setup msbuild on Windows
-        if: matrix.os == 'windows-latest'
-        uses: microsoft/setup-msbuild@v1.1
-      
-      - name: Set up Visual Studio shell
-        if: matrix.os == 'windows-latest'
-        uses: egor-tensin/vs-shell@v2
-        with:
-          arch: x64
-      
-      - name: Check out source repository
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      
       - name: Install dependencies
         run: |
           pip3 install --pre torchdata --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-          pip3 install --pre torch -f "${{ steps.pytorch_channel.outputs.value }}"
+          pip3 install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
           pip3 install -r requirements.txt
-          
           echo "/home/runner/.local/bin" >> $GITHUB_PATH
       
-      - name: Install Atmodata
+      - name: Install atmodata
         run: |
           pip3 install .
       

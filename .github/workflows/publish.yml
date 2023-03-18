@@ -1,0 +1,80 @@
+name: Build and Upload Wheel
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        required: true
+        type: string
+      do-upload:
+        required: false
+        default: true
+        type: boolean
+      real-pypi:
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      PYPI_TOKEN:
+        required: true
+
+jobs:
+  wheel_build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+          submodules: recursive
+
+      - name: Build wheel
+        run:
+          pip3 install build
+          python3 -m build
+
+      - name: Upload wheels to github
+        uses: actions/upload-artifact@v3
+        with:
+          name: atmodata-wheel
+          path: dist/atmodata*.whl
+
+  wheel_upload:
+    if: always() && inputs.branch != '' && inputs.do-upload == true
+    needs: [wheel_build]
+    runs-on: ubuntu-latest
+    outputs:
+      upload: ${{ steps.trigger_upload.outputs.value }}
+    steps:
+      - name: Download artifacts from github
+        continue-on-error: true
+        uses: actions/download-artifact@v3
+        with:
+          name: atmodata-wheel
+      
+      - name: Determine if wheel uploading is needed
+        run: |
+          upload=false
+          for txt in atmodata*.whl; do
+            upload=true
+            break
+          done
+          echo "value=$upload" >> $GITHUB_OUTPUT
+        id: trigger_upload
+      
+      - name: Display all wheels
+        if: steps.trigger_upload.outputs.value == 'true'
+        run: ls -lh atmodatadata*.whl
+      
+      - name: Upload wheels to PyPI
+        if: |
+          steps.trigger_upload.outputs.value == 'true' &&
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          pip3 install twine
+          python -m twine upload \
+            -r testpypi \
+            --username __token__ \
+            --password "$PYPI_TOKEN" \
+            atmodata*.whl

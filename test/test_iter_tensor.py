@@ -13,7 +13,7 @@ class TestIterTensor(TestCase):
         inp = torch.arange(10*10).reshape(10,10)
         in_dp = IterableWrapper([inp])
         
-        # Test: Basic
+        # Test: basic
         out_dp = ThSplitter(in_dp, 5, dim=0)
         expected = [inp[:5], inp[5:]]
         _assert_tensors_equal(expected, list(out_dp))
