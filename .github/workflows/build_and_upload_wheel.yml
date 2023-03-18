@@ -64,11 +64,11 @@ jobs:
       
       - name: Display all wheels
         if: steps.trigger_upload.outputs.value == 'true'
-        run: ls -lh atmodatadata*.whl
+        run: ls -lh atmodata*.whl
       
       - name: Upload wheels to PyPI
         if: |
-          steps.trigger_upload.outputs.value == 'true' &&
+          steps.trigger_upload.outputs.value == 'true'
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
