@@ -15,5 +15,6 @@ jobs:
     uses: ./.github/workflows/build_and_upload_wheel.yml
     with:
       branch: ""
+      real-pypi: true
     secrets:
       PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}

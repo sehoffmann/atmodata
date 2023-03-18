@@ -72,8 +72,16 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           pip3 install twine
-          python -m twine upload \
-            -r testpypi \
-            --username __token__ \
-            --password "$PYPI_TOKEN" \
-            atmodata*.whl
+          if [[ "${{ inputs.real-pypi }}" == true ]]; then
+            python -m twine upload \
+              --username __token__ \
+              --password "$PYPI_TOKEN" \
+              atmodata*.whl
+          else
+            python -m twine upload \
+              -r testpypi \
+              --username __token__ \
+              --password "$PYPI_TOKEN" \
+              atmodata*.whl
+          fi
+          
