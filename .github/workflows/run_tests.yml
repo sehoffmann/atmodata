@@ -4,6 +4,9 @@ on:
     branches:
       - develop
     tags:  # ignores tag pushes
+    paths:
+      - 'atmodata/**'
+      - 'test/**'
 
 jobs:
   test:
