@@ -1,0 +1,18 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: atmodata
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file. Attribution is mandatory as
+  stated in the license.
+type: software
+authors:
+  - given-names: Sebastian
+    family-names: Hoffmann
+    orcid: 'https://orcid.org/0000-0002-8760-1065'
+    affiliation: University of Tübingen
+repository-code: 'https://github.com/sehoffmann/atmodata'
+version: 0.0.2
+date-released: '2023-03-18'
