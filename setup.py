@@ -1,7 +1,8 @@
 import os
-import setuptools
 import subprocess
 from pathlib import Path
+
+import setuptools
 
 ROOT_DIR = Path(__file__).parent.resolve()
 
@@ -19,7 +20,7 @@ def _get_version():
     os_build_version = os.getenv("BUILD_VERSION")
     if os_build_version:
         version = os_build_version
-    #elif sha != "Unknown":
+    # elif sha != "Unknown":
     #    version += "+" + sha[:7]
 
     return version, sha
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     packages = setuptools.find_packages(exclude=['test*'])
     print('Including packages: ', packages)
 
-    with open(ROOT_DIR / 'README.md', 'r') as f:
+    with open(ROOT_DIR / 'README.md') as f:
         long_description = f.read()
 
     setuptools.setup(
@@ -65,12 +66,9 @@ if __name__ == '__main__':
         author_email='shoffmann.git@gmail.com',
         long_description=long_description,
         long_description_content_type='text/markdown',
-        
         python_requires='>=3.8',
         install_requires=requirements,
-
         packages=packages,
-        
         classifiers=[
             'Programming Language :: Python :: 3',
             'License :: Other/Proprietary License',

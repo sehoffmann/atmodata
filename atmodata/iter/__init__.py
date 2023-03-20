@@ -1,3 +1,4 @@
+from atmodata.iter.tensor import ThBatchInterleaver, ThConcatter, ThSplitter, ThToDevice
 from atmodata.iter.xarray import (
     XrExtractTimeseries,
     XrISelecter,
@@ -9,13 +10,6 @@ from atmodata.iter.xarray import (
     XrSelecter,
     XrSplitDim,
     XrVariableGetter,
-)
-
-from atmodata.iter.tensor import (
-    ThBatchInterleaver,
-    ThConcatter,
-    ThSplitter,
-    ThToDevice,
 )
 
 __all__ = [
@@ -32,7 +26,7 @@ __all__ = [
     'XrRandomCrop',
     'XrSelecter',
     'XrSplitDim',
-    'XrVariableGetter'
+    'XrVariableGetter',
 ]
 
 assert __all__ == sorted(__all__)

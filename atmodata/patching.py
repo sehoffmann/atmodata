@@ -2,19 +2,14 @@ import torch
 import torch.utils.data.graph_settings
 import torchdata.dataloader2.utils.worker
 from torch.utils.data.datapipes.iter.sharding import _ShardingIterDataPipe, SHARDING_PRIORITIES
-from torch.utils.data.datapipes.iter.sharding import SHARDING_PRIORITIES
 from torchdata.dataloader2 import communication
-from torchdata.dataloader2.graph import (
-    find_dps,
-    replace_dp,
-    traverse_dps,
-)
+from torchdata.dataloader2.graph import find_dps, replace_dp, traverse_dps
 from torchdata.dataloader2.utils.dispatch import _DummyIterDataPipe
 from torchdata.datapipes.iter import IterDataPipe
 from torchdata.datapipes.map import MapDataPipe
 
-class PatchedFunction:
 
+class PatchedFunction:
     def __init__(self, module, attr, func):
         self.module = module
         self.attr = attr
@@ -23,7 +18,7 @@ class PatchedFunction:
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
-    
+
     def patch(self):
         setattr(self.module, self.attr, self)
 
@@ -31,11 +26,9 @@ class PatchedFunction:
         setattr(self.module, self.attr, self.original)
 
 
-def apply_sharding(datapipe,
-                    num_of_instances: int,
-                    instance_id: int,
-                    sharding_group=SHARDING_PRIORITIES.DEFAULT):
+def apply_sharding(datapipe, num_of_instances: int, instance_id: int, sharding_group=SHARDING_PRIORITIES.DEFAULT):
     graph = traverse_dps(datapipe)
+
     def _helper(graph, prev_applied=None):
         for _, (dp, sub_graph) in graph.items():
             applied = None
@@ -45,6 +38,7 @@ def apply_sharding(datapipe,
             if applied is None:
                 applied = prev_applied
             _helper(sub_graph, applied)
+
     _helper(graph)
     return datapipe
 
@@ -52,9 +46,9 @@ def apply_sharding(datapipe,
 def process_init_fn(
     datapipe,
     worker_info,
-    custom_init_fn = None,
-    dispatching_req_queue = None,
-    dispatching_res_queue = None,
+    custom_init_fn=None,
+    dispatching_req_queue=None,
+    dispatching_res_queue=None,
 ):
     r"""
     Based on the worker information, shard the ``DataPipe`` graph dynamically.
@@ -88,10 +82,10 @@ def process_init_fn(
     return datapipe
 
 
-
 def patch_torchdata():
     PatchedFunction(torch.utils.data.graph_settings, 'apply_sharding', apply_sharding).patch()
     PatchedFunction(torchdata.dataloader2.utils.worker, 'process_init_fn', process_init_fn).patch()
+
 
 def unpatch_torchdata():
     func = getattr(torch.utils.data.graph_settings, 'apply_sharding')

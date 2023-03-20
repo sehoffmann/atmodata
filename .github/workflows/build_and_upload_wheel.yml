@@ -50,7 +50,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: atmodata-wheels
-      
+
       - name: Determine if wheel uploading is needed
         run: |
           upload=false
@@ -60,11 +60,11 @@ jobs:
           done
           echo "value=$upload" >> $GITHUB_OUTPUT
         id: trigger_upload
-      
+
       - name: Display all wheels
         if: steps.trigger_upload.outputs.value == 'true'
         run: ls -lh atmodata*.whl
-      
+
       - name: Upload wheels to PyPI
         if: |
           steps.trigger_upload.outputs.value == 'true'
@@ -84,4 +84,3 @@ jobs:
               --password "$PYPI_TOKEN" \
               atmodata*.whl
           fi
-          

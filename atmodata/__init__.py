@@ -2,6 +2,7 @@ from . import iter, map, patching
 
 try:
     from . import version
+
     __version__ = version.__version__  # noqa: F401
 except ImportError:
     pass

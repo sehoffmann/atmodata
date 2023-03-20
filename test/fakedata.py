@@ -1,9 +1,12 @@
-import xarray as xr
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import xarray as xr
 
 
 _coords = None
+
+
 def _get_coords():
     global _coords
     if _coords is None:
@@ -26,8 +29,9 @@ def create_fake_dataset(var_name, time_max=100, level_max=3):
             'level': level,
             'lat': only_coords.lat,
             'lon': only_coords.lon,
-        }
+        },
     )
     return da
+
 
 create_fake_dataset('t')
