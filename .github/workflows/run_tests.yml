@@ -8,6 +8,7 @@ on:
       - 'atmodata/**'
       - 'test/**'
       - 'setup.py'
+      - 'requirements.txt'
 
 jobs:
   test:
