@@ -1,4 +1,4 @@
-from . import datapipes
+from . import iter, map
 
 try:
     from . import version
@@ -6,4 +6,4 @@ try:
 except ImportError:
     pass
 
-__all__ = ['datapipes']
+__all__ = ['iter', 'map']
