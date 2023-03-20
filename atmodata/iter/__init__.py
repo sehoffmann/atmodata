@@ -1,14 +1,17 @@
-from atmodata.datapipes.iter.xarray import (
+from atmodata.iter.xarray import (
+    XrExtractTimeseries,
     XrISelecter,
     XrLoader,
     XrMerge,
     XrOpener,
+    XrPrefetcher,
+    XrRandomCrop,
     XrSelecter,
     XrSplitDim,
     XrVariableGetter,
 )
 
-from atmodata.datapipes.iter.tensor import (
+from atmodata.iter.tensor import (
     ThBatchInterleaver,
     ThConcatter,
     ThSplitter,
@@ -20,10 +23,13 @@ __all__ = [
     'ThConcatter',
     'ThSplitter',
     'ThToDevice',
+    'XrExtractTimeseries',
     'XrISelecter',
     'XrLoader',
     'XrMerge',
     'XrOpener',
+    'XrPrefetcher',
+    'XrRandomCrop',
     'XrSelecter',
     'XrSplitDim',
     'XrVariableGetter'

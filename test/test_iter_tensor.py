@@ -4,7 +4,7 @@ import functools
 import atmodata
 import torch
 from torchdata.datapipes.iter import IterableWrapper
-from atmodata.datapipes.iter.tensor import ThSplitter, ThChunker, ThBatchInterleaver
+from atmodata.iter.tensor import ThSplitter, ThChunker, ThBatchInterleaver
 
 _assert_tensors_equal = functools.partial(torch.testing.assert_close, rtol=0, atol=0)
 
