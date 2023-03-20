@@ -1,4 +1,4 @@
-from . import iter, map
+from . import iter, map, patching
 
 try:
     from . import version
@@ -6,4 +6,7 @@ try:
 except ImportError:
     pass
 
-__all__ = ['iter', 'map']
+# patch torchdata, c.f. pytorch/data#1082 and pytorch/data#1087
+patching.patch_torchdata()
+
+__all__ = ['iter', 'map', 'patching']
