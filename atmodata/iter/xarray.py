@@ -177,14 +177,14 @@ class XrExtractTimeseries(_ShardingIterDataPipe):
 
             indices = list(range(N - T))
             if self.shuffle:
-                if self._seed == None:
+                if self._seed is None:
                     seed = int(torch.empty((), dtype=torch.int64).random_().item())
                 else:
                     seed = self._seed + i
                 self._rng.seed(seed)
                 self._rng.shuffle(indices)
 
-            if self.shard and self._instance_id != None:
+            if self.shard and self._instance_id is not None:
                 indices = indices[self._instance_id :: self._num_of_instances]
 
             for idx in indices:
