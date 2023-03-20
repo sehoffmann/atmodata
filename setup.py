@@ -75,7 +75,9 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 3',
             'License :: Other/Proprietary License',
             'Operating System :: OS Independent',
-            'Development Status :: 1 - Planning',
-            'Topic :: Scientific/Engineering :: Artificial Intelligence'
+            'Development Status :: 2 - Pre-Alpha',
+            'Topic :: Scientific/Engineering :: Artificial Intelligence',
+            'Intended Audience :: Science/Research',
+            'Intended Audience :: Developers',
         ],
     )
