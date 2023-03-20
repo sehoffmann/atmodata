@@ -15,6 +15,20 @@ class ThSplitter(IterDataPipe):
                 yield chunk
 
 
+@functional_datapipe("th_chunk")
+class ThChunker(IterDataPipe):
+        
+        def __init__(self, dp, chunks, dim=0):
+            self.dp = dp
+            self.chunks = chunks
+            self.dim=dim
+            
+        def __iter__(self):
+            for x in self.dp:
+                for chunk in torch.chunk(x, self.chunks, dim=self.dim):
+                    yield chunk
+
+
 @functional_datapipe("th_concat")
 class ThConcatter(IterDataPipe):
     
