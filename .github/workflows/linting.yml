@@ -1,0 +1,33 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - develop
+    tags:  # ignores tag pushes
+  pull_request:
+
+jobs:
+  style:
+    if: ${{ github.repository_owner == 'sehoffmann' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Check out source repository
+        uses: actions/checkout@v3
+
+      - name: Install lint utilities
+        run: |
+          pip install pre-commit
+          pre-commit install-hooks
+
+      - name: Lint Python code and config files
+        run: pre-commit run --all-files
+        
+      - name: Required modifications
+        if: ${{ failure() }}
+        run: git --no-pager diff
