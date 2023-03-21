@@ -26,26 +26,24 @@ def main():
     years = [1990]
     variables = ['z', 't', 'r']
     N_vars = len(variables)
-    N_workers = 8
+    N_workers = 4
 
     pipes = dp.iter.IterableWrapper(years).fork(N_vars)
     pipe = dp.iter.Zipper(*[open_variable(var, dp) for var, dp in zip(variables, pipes)])
     pipe = pipe.sharding_filter(SHARDING_PRIORITIES.DISTRIBUTED)
     pipe = pipe.xr_prefetch(buffer_size=4).xr_merge()
 
-    pipe = pipe.repeat(N_workers).sharding_round_robin_dispatch(SHARDING_PRIORITIES.MULTIPROCESSING).prefetch(3)
-    pipes = pipe.round_robin_demux(3)  # sample from 3 months at the same time
-    pipes = [extract_ts_crops(dp) for dp in pipes]
-    pipe = pipes[0].mux_longest(*pipes[1:])
+    pipe = pipe.repeat(N_workers).sharding_round_robin_dispatch(SHARDING_PRIORITIES.MULTIPROCESSING)
+    pipe = pipe.round_robin_transform(3, extract_ts_crops)  # sample from 3 months at the same time
     pipe = pipe.xr_to_numpy().batch(32).collate()
     pipe = pipe.non_replicable()
-    pipe = pipe.th_to_device('cuda').th_interleave_batches(2)
+    pipe = pipe.th_to_device('cuda').th_interleave_batches(N_workers)
     pipe = pipe.prefetch(4)
 
     rs = MultiProcessingReadingService(num_workers=N_workers)
     dl = DataLoader2(pipe, reading_service=rs)
 
-    benchmark(dl)
+    benchmark(dl, 0)
 
 
 if __name__ == '__main__':

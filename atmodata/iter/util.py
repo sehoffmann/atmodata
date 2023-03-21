@@ -1,3 +1,5 @@
+import functools
+
 from torchdata.datapipes import functional_datapipe
 from torchdata.datapipes.iter import IterDataPipe
 
@@ -12,3 +14,27 @@ class NonReplicableIterDataPipe(IterDataPipe):
 
     def is_replicable(self):
         return False
+
+
+@functional_datapipe('round_robin_transform')
+class RoundRobinTransformer(IterDataPipe):
+    def __init__(self, dp, forks, transform_func):
+        pipes = dp.round_robin_demux(forks)
+        pipes = [transform_func(dp) for dp in pipes]
+        self.dp = pipes[0].mux_longest(*pipes[1:])
+
+    def __iter__(self):
+        return iter(self.dp)
+
+
+@functional_datapipe('round_robin_map')
+class RoundRobinMapper(IterDataPipe):
+    def __init__(self, dp, forks, fn):
+        self.dp = dp.round_robin_transform(forks, functools.partial(RoundRobinMapper._transform, fn=fn))
+
+    def __iter__(self):
+        return iter(self.dp)
+
+    @staticmethod
+    def _transform(pipe, fn):
+        return pipe.map(fn)
