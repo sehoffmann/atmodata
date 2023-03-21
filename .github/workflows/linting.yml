@@ -27,7 +27,7 @@ jobs:
 
       - name: Lint Python code and config files
         run: pre-commit run --all-files
-        
+
       - name: Required modifications
         if: ${{ failure() }}
         run: git --no-pager diff
