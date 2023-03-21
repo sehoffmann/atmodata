@@ -31,14 +31,14 @@ def main():
     pipes = dp.iter.IterableWrapper(years).fork(N_vars)
     pipe = dp.iter.Zipper(*[open_variable(var, dp) for var, dp in zip(variables, pipes)])
     pipe = pipe.sharding_filter(SHARDING_PRIORITIES.DISTRIBUTED)
-    pipe = pipe.xr_prefetch(buffer_size=4).xr_merge()
+    pipe = pipe.xr_prefetch(buffer_size=0).xr_merge().share_memory().prefetch(6)
 
     pipe = pipe.repeat(N_workers).sharding_round_robin_dispatch(SHARDING_PRIORITIES.MULTIPROCESSING)
     pipe = pipe.round_robin_transform(3, extract_ts_crops)  # sample from 3 months at the same time
     pipe = pipe.xr_to_numpy().batch(32).collate()
-    pipe = pipe.non_replicable()
+    pipe = pipe.non_replicable().prefetch(N_workers * 1)
     pipe = pipe.th_to_device('cuda').th_interleave_batches(N_workers)
-    pipe = pipe.prefetch(4)
+    pipe = pipe.prefetch(2)
 
     rs = MultiProcessingReadingService(num_workers=N_workers)
     dl = DataLoader2(pipe, reading_service=rs)

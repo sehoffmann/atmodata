@@ -1,9 +1,9 @@
 import xarray  # usort:skip # noqa: F401
 from . import patching
 
-patching.patch_torchdata()
+patching.patch_torchdata()  # TODO: remove this once torchdata is fixed
 
-from . import datasets, iter, map, tasks, utils
+from . import datasets, iter, map, serialization, tasks, utils
 
 try:
     from . import version  # fmt: skip
@@ -11,4 +11,14 @@ try:
 except ImportError:
     pass
 
-__all__ = ['datasets', 'iter', 'map', 'patching', 'tasks', 'utils']
+__all__ = [
+    'datasets',
+    'iter',
+    'map',
+    'patching',
+    'serialization',
+    'tasks',
+    'utils',
+]
+
+assert __all__ == sorted(__all__)

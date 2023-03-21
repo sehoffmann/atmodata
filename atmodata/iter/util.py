@@ -3,6 +3,8 @@ import functools
 from torchdata.datapipes import functional_datapipe
 from torchdata.datapipes.iter import IterDataPipe
 
+import atmodata.serialization
+
 
 @functional_datapipe('non_replicable')
 class NonReplicableIterDataPipe(IterDataPipe):
@@ -38,3 +40,13 @@ class RoundRobinMapper(IterDataPipe):
     @staticmethod
     def _transform(pipe, fn):
         return pipe.map(fn)
+
+
+@functional_datapipe('share_memory')
+class MemorySharer(IterDataPipe):
+    def __init__(self, dp):
+        self.dp = dp
+
+    def __iter__(self):
+        for x in self.dp:
+            yield atmodata.serialization.share_memory(x)

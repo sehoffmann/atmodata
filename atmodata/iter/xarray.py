@@ -109,7 +109,7 @@ class XrPrefetcher(IterDataPipe):
         it = iter(self.dp)
         with executor_cls(self.n_threads) as executor:
             try:
-                for _ in range(self.buffer_size):
+                for _ in range(self.buffer_size + 1):
                     data_arrays = _as_iterable(next(it))
                     self.buffer.append([executor.submit(XrPrefetcher._ld, da) for da in data_arrays])
 
