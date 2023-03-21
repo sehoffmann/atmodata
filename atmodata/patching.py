@@ -1,32 +1,30 @@
-import torch
-import torch.utils.data.graph_settings
-import torchdata.dataloader2.utils.worker
-from torch.utils.data.datapipes.iter.sharding import _ShardingIterDataPipe, SHARDING_PRIORITIES
-from torchdata.dataloader2 import communication
-from torchdata.dataloader2.graph import find_dps, replace_dp, traverse_dps
-from torchdata.dataloader2.utils.dispatch import _DummyIterDataPipe
-from torchdata.datapipes.iter import IterDataPipe
-from torchdata.datapipes.map import MapDataPipe
-
-
 class PatchedFunction:
     def __init__(self, module, attr, func):
         self.module = module
         self.attr = attr
         self.func = func
         self.original = getattr(module, attr)
+        self.patched = False
 
     def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+        if self.patched:
+            return self.func(*args, **kwargs)
+        else:
+            return self.original(*args, **kwargs)
 
     def patch(self):
+        self.patched = True
         setattr(self.module, self.attr, self)
 
     def unpatch(self):
+        self.patched = False
         setattr(self.module, self.attr, self.original)
 
 
-def apply_sharding(datapipe, num_of_instances: int, instance_id: int, sharding_group=SHARDING_PRIORITIES.DEFAULT):
+def patched_apply_sharding(datapipe, num_of_instances: int, instance_id: int, sharding_group):
+    from torch.utils.data.datapipes.iter.sharding import _ShardingIterDataPipe
+    from torch.utils.data.graph import traverse_dps
+
     graph = traverse_dps(datapipe)
 
     def _helper(graph, prev_applied=None):
@@ -43,30 +41,36 @@ def apply_sharding(datapipe, num_of_instances: int, instance_id: int, sharding_g
     return datapipe
 
 
-def process_init_fn(
+def patched_process_init_fn(
     datapipe,
     worker_info,
     custom_init_fn=None,
+    worker_prefetch_cnt: int = 0,
     dispatching_req_queue=None,
     dispatching_res_queue=None,
 ):
-    r"""
-    Based on the worker information, shard the ``DataPipe`` graph dynamically.
-    """
+    from torch.utils.data.datapipes.iter.sharding import SHARDING_PRIORITIES
+    from torchdata.dataloader2 import communication
+    from torchdata.dataloader2.graph import find_dps, replace_dp, traverse_dps
+    from torchdata.dataloader2.utils.dispatch import _DummyIterDataPipe
+    from torchdata.datapipes.iter import IterDataPipe
+    from torchdata.datapipes.map import MapDataPipe
+
     # Find if there is non-replicable DataPipe
     graph = traverse_dps(datapipe)
     non_replicable_dp = find_dps(graph, _DummyIterDataPipe)  # type: ignore
 
-    torch.utils.data.graph_settings.apply_sharding(
+    patched_apply_sharding(
         datapipe, worker_info.num_workers, worker_info.worker_id, SHARDING_PRIORITIES.MULTIPROCESSING
     )
 
+    # 2) There is non-replicable DataPipe. Since we have replaced the lowest common
+    #    ancestor by a `_DummyIterDataPipe`, we would only apply mp sharding
+    #    to replicable branches that don't have `_DummyIterDataPipe`.
     if len(non_replicable_dp) > 0:
-        # 2) There is non-replicable DataPipe. Since we have replaced the lowest common
-        #     ancestor by a `_DummyIterDataPipe`, we would only apply mp sharding
-        #    to replicable branches that don't have `_DummyIterDataPipe`.
         assert len(non_replicable_dp) == 1
         assert not (dispatching_req_queue is None and dispatching_res_queue is None)
+        dispatching_req_queue.cancel_join_thread()  # type: ignore[union-attr]
 
         queue_wrapper = communication.iter.QueueWrapper(
             communication.protocol.IterDataPipeQueueProtocolClient(dispatching_req_queue, dispatching_res_queue)
@@ -79,19 +83,29 @@ def process_init_fn(
         datapipe = custom_init_fn(datapipe, worker_info)
         assert isinstance(datapipe, (IterDataPipe, MapDataPipe))
 
+    if worker_prefetch_cnt > 0:
+        datapipe = datapipe.prefetch(worker_prefetch_cnt)
+
     return datapipe
 
 
 def patch_torchdata():
-    PatchedFunction(torch.utils.data.graph_settings, 'apply_sharding', apply_sharding).patch()
-    PatchedFunction(torchdata.dataloader2.utils.worker, 'process_init_fn', process_init_fn).patch()
+    # fmt: off
+    import torchdata.dataloader2.reading_service as m
+    PatchedFunction(m, 'process_init_fn', patched_process_init_fn).patch()
+
+    import torch.utils.data.graph_settings as m
+    PatchedFunction(m, 'apply_sharding', patched_apply_sharding).patch()
 
 
 def unpatch_torchdata():
-    func = getattr(torch.utils.data.graph_settings, 'apply_sharding')
+    # fmt: off
+    import torchdata.dataloader2.reading_service as m
+    func = getattr(m, 'process_init_fn')
     if isinstance(func, PatchedFunction):
         func.unpatch()
 
-    func = getattr(torchdata.dataloader2.utils.worker, 'process_init_fn')
+    import torch.utils.data.graph_settings as m
+    func = getattr(m, 'apply_sharding')
     if isinstance(func, PatchedFunction):
         func.unpatch()
