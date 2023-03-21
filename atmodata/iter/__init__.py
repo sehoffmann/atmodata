@@ -1,4 +1,14 @@
-from atmodata.iter.tensor import ThBatchInterleaver, ThConcatter, ThSplitter, ThToDevice
+from atmodata.iter.tensor import (
+    # ------------------------------------------------------ USORT NO SPLIT
+    ThBatchInterleaver,
+    ThConcatter,
+    ThSplitter,
+    ThToDevice,
+)
+from atmodata.iter.util import (
+    # ------------------------------------------------------ USORT NO SPLIT
+    NonReplicableIterDataPipe,
+)
 from atmodata.iter.xarray import (
     XrExtractTimeseries,
     XrISelecter,
@@ -9,10 +19,12 @@ from atmodata.iter.xarray import (
     XrRandomCrop,
     XrSelecter,
     XrSplitDim,
+    XrToNumpy,
     XrVariableGetter,
 )
 
 __all__ = [
+    'NonReplicableIterDataPipe',
     'ThBatchInterleaver',
     'ThConcatter',
     'ThSplitter',
@@ -26,6 +38,7 @@ __all__ = [
     'XrRandomCrop',
     'XrSelecter',
     'XrSplitDim',
+    'XrToNumpy',
     'XrVariableGetter',
 ]
 

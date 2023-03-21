@@ -236,3 +236,16 @@ class XrRandomCrop(IterDataPipe):
             return candidate + 1
         else:
             return candidate
+
+
+@functional_datapipe("xr_to_numpy")
+class XrToNumpy(IterDataPipe):
+    def __init__(self, dp):
+        self.dp = dp
+
+    def __iter__(self):
+        for ds in self.dp:
+            if isinstance(ds, xr.Dataset):
+                yield ds.to_array().to_numpy()
+            else:
+                yield ds.to_numpy()
