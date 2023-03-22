@@ -6,10 +6,9 @@ import numpy as np
 import pytest
 import torch
 from atmodata.serialization import _get_offset, _get_owning_base, _have_same_memory, ForkingPickler
-from expecttest import TestCase
 
 
-class TestSerialization(TestCase):
+class TestSerialization:
     @staticmethod
     def roundtrip(arr):
         serialized = ForkingPickler.dumps(arr)
@@ -17,41 +16,43 @@ class TestSerialization(TestCase):
 
     def _assert_shared(self, rebuilt):
         base = _get_owning_base(rebuilt)
-        self.assertIsInstance(rebuilt, np.ndarray)
-        self.assertIsInstance(base, torch.Tensor)
-        self.assertTrue(base.is_shared())
+        assert isinstance(rebuilt, np.ndarray)
+        assert isinstance(base, torch.Tensor)
+        assert base.is_shared()
 
     def test_get_owning_base(self):
         arr = np.arange(10)
-        self.assertIs(_get_owning_base(arr), arr)
-        self.assertIs(_get_owning_base(arr[2:5]), arr)
-        self.assertIs(_get_owning_base(arr[2:5][0:1]), arr)
+        assert _get_owning_base(arr) is arr
+        assert _get_owning_base(arr[2:5]) is arr
+        assert _get_owning_base(arr[2:5][0:1]) is arr
 
         tensor = torch.arange(10)
         np_view = np.asarray(tensor)
-        self.assertIsInstance(_get_owning_base(np_view), torch.Tensor)
-        self.assertTrue(_have_same_memory(_get_owning_base(np_view), tensor))
-        self.assertTrue(_have_same_memory(_get_owning_base(np_view[2:5]), tensor))
+        assert isinstance(_get_owning_base(np_view), torch.Tensor)
+        assert _have_same_memory(_get_owning_base(np_view), tensor)
+        assert _have_same_memory(_get_owning_base(np_view[2:5]), tensor)
 
-    def test_basic_contiguous(self):
+    @pytest.mark.parametrize('order', ['C', 'F'])
+    def test_basic_contiguous(self, order):
         # Test: basic serialization of nparray via shared memory
         arr = np.arange(10 * 10).reshape(10, 10)
-        rebuilt = self.roundtrip(arr)
-
-        base = _get_owning_base(rebuilt)
-        self.assertIsInstance(rebuilt, np.ndarray)
-        self.assertIsInstance(base, torch.Tensor)
-        self.assertTrue(base.is_shared())
-        np.testing.assert_array_equal(rebuilt, arr)
-
-    def test_contiguous_slice(self):
-        arr = np.arange(10 * 10).reshape(10, 10)[2:5, 3:7]
+        arr = np.array(arr, order=order)
         rebuilt = self.roundtrip(arr)
         self._assert_shared(rebuilt)
         np.testing.assert_array_equal(rebuilt, arr)
 
-    def test_noncontiguous_slice(self):
-        arr = np.arange(10 * 10).reshape(10, 10)[2:5:4, 3:9:2]
+    @pytest.mark.parametrize('order', ['C', 'F'])
+    def test_contiguous_slice(self, order):
+        arr = np.arange(10 * 10).reshape(10, 10)
+        arr = np.array(arr, order=order)[2:5, 3:7]
+        rebuilt = self.roundtrip(arr)
+        self._assert_shared(rebuilt)
+        np.testing.assert_array_equal(rebuilt, arr)
+
+    @pytest.mark.parametrize('order', ['C', 'F'])
+    def test_noncontiguous_slice(self, order):
+        arr = np.arange(10 * 10).reshape(10, 10)
+        arr = np.array(arr, order=order)[2:5:4, 3:9:2]
         rebuilt = self.roundtrip(arr)
         self._assert_shared(rebuilt)
         np.testing.assert_array_equal(rebuilt, arr)
@@ -82,14 +83,16 @@ class TestSerialization(TestCase):
         rebuilt = self.roundtrip(arr)
         np.testing.assert_array_equal(rebuilt, arr)
 
-    def test_nonzero_offset(self):
+    @pytest.mark.parametrize('order', ['C', 'F'])
+    def test_nonzero_offset(self, order):
         arr = np.arange(10 * 10).reshape(10, 10)
+        arr = np.array(arr, order=order)
         rebuilt = self.roundtrip(arr)
         self._assert_shared(rebuilt)
         np.testing.assert_array_equal(rebuilt, arr)
 
         arr2 = rebuilt[2:5, 3:7]
-        self.assertGreater(_get_offset(arr2), 0)  # we expect a nonzero offset
+        assert _get_offset(arr2) > 0  # we expect arr2 to have nonzero offset
         rebuilt2 = self.roundtrip(arr2)
         self._assert_shared(rebuilt2)
         np.testing.assert_array_equal(rebuilt2, arr2)
