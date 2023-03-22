@@ -62,17 +62,22 @@ class TestSerialization(TestCase):
         np.testing.assert_array_equal(rebuilt, arr)
 
     def test_dtypes(self):
-        arr = np.arange(20).astype(np.float128).reshape(2, 5, 2)
-        rebuilt = self.roundtrip(arr)
-        self._assert_shared(rebuilt)
-        np.testing.assert_array_equal(rebuilt, arr)
+        if hasattr(np, 'float128'):
+            arr = np.arange(20).astype(np.float128).reshape(2, 5, 2)
+            rebuilt = self.roundtrip(arr)
+            self._assert_shared(rebuilt)
+            np.testing.assert_array_equal(rebuilt, arr)
 
         arr = np.arange(20).astype('datetime64[ns]')
         rebuilt = self.roundtrip(arr)
         self._assert_shared(rebuilt)
         np.testing.assert_array_equal(rebuilt, arr)
 
-        # Test: non-sharable dtypes
+        # TODO: expand this test to cover more complex dtypes
+        #       e.g. structured dtypes, flexible dtypes, etc.
+        #       see: https://numpy.org/doc/stable/reference/arrays.dtypes.html
+
+        # Test: non-shareable dtypes
         arr = np.asarray(['a', 'bc', 'def'])
         rebuilt = self.roundtrip(arr)
         np.testing.assert_array_equal(rebuilt, arr)
