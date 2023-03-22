@@ -5,7 +5,7 @@ import numpy as np
 
 import pytest
 import torch
-from atmodata.serialization import _get_owning_base, _have_same_memory, ForkingPickler, reduce_ndarray
+from atmodata.serialization import _get_offset, _get_owning_base, _have_same_memory, ForkingPickler
 from expecttest import TestCase
 
 
@@ -76,6 +76,18 @@ class TestSerialization(TestCase):
         arr = np.asarray(['a', 'bc', 'def'])
         rebuilt = self.roundtrip(arr)
         np.testing.assert_array_equal(rebuilt, arr)
+
+    def test_nonzero_offset(self):
+        arr = np.arange(10 * 10).reshape(10, 10)
+        rebuilt = self.roundtrip(arr)
+        self._assert_shared(rebuilt)
+        np.testing.assert_array_equal(rebuilt, arr)
+
+        arr2 = rebuilt[2:5, 3:7]
+        self.assertGreater(_get_offset(arr2), 0)  # we expect a nonzero offset
+        rebuilt2 = self.roundtrip(arr2)
+        self._assert_shared(rebuilt2)
+        np.testing.assert_array_equal(rebuilt2, arr2)
 
 
 if __name__ == '__main__':

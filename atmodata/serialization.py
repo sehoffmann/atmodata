@@ -3,6 +3,8 @@ from multiprocessing.reduction import ForkingPickler
 
 import numpy as np
 import torch
+from numpy.lib.stride_tricks import DummyArray
+
 
 __all__ = [
     'rebuild_ndarray',
@@ -50,25 +52,30 @@ def _to_bytes(arr: np.ndarray):
     return arr.view(np.byte)
 
 
-def _from_bytes(arr: np.ndarray, dtype: np.dtype):
+def _get_offset(arr: np.ndarray):
     """
-    Inverse of _to_bytes
+    Returns the offset in bytes from the start of the array to the start of its base.
     """
-    if arr.ndim == 0:
-        raise ValueError('Cannot deserialize 0d np.ndarray')
-    if arr.strides[-1] != 1:
-        arr = arr.reshape(arr.shape[:-1])
-    return arr.view(dtype)
+    base = _get_owning_base(arr)
+    base_addr = np.asarray(base).__array_interface__['data'][0]
+    arr_addr = arr.__array_interface__['data'][0]
+    return arr_addr - base_addr
 
 
 def rebuild_ndarray(tensor, metainfo):
-    shape, strides, typestr = metainfo
+    offset, shape, strides, typestr = metainfo
     buffer = np.asarray(tensor)
     dtype = np.dtype(typestr)
     try:
-        arr = _from_bytes(buffer, dtype)
-        arr = np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
-        assert _have_same_memory(_get_owning_base(arr), tensor)
+        __array_interface__ = {
+            'shape': shape,
+            'strides': strides,
+            'typestr': typestr,
+            'version': 3,
+            'data': (buffer.__array_interface__['data'][0] + offset, False),
+        }
+        arr = np.asarray(DummyArray(__array_interface__, buffer))
+        arr.dtype = dtype
         return arr
     except Exception as e:
         msg = f'Failed to deserialize np.ndarray from shared-mem torch.Tensor: {e}'
@@ -95,11 +102,12 @@ def reduce_ndarray(arr: np.ndarray):
     base = _get_owning_base(arr)
     if isinstance(base, torch.Tensor):
         tensor = base
-        assert arr.__array_interface__['data'][0] - np.asarray(base).__array_interface__['data'][0] == 0
+        offset = _get_offset(arr)
     else:
         tensor = torch.as_tensor(_to_bytes(arr))
+        offset = 0
 
-    return (rebuild_ndarray, (tensor, (shape, strides, typestr)))
+    return (rebuild_ndarray, (tensor, (offset, shape, strides, typestr)))
 
 
 def share_memory(obj):
