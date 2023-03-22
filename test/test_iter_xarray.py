@@ -20,3 +20,7 @@ class TestIterXarray(TestCase):
             N_elems = len(ds.time) // 4
             expected = ds.isel(time=slice(i * N_elems, (i + 1) * N_elems))
             xr.testing.assert_identical(expected, output[i])
+
+
+if __name__ == '__main__':
+    unittest.main()
