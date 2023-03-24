@@ -1,11 +1,14 @@
+import os
 import pickle
 import unittest
 
 import numpy as np
-
 import pytest
 import torch
 from atmodata.serialization import _get_offset, _get_owning_base, _have_same_memory, ForkingPickler
+from torch.utils.data.datapipes.iter.sharding import SHARDING_PRIORITIES
+from torchdata.dataloader2 import DataLoader2, MultiProcessingReadingService
+from torchdata.datapipes.iter import IterableWrapper
 
 
 class TestSerialization:
@@ -19,6 +22,7 @@ class TestSerialization:
         assert isinstance(rebuilt, np.ndarray)
         assert isinstance(base, torch.Tensor)
         assert base.is_shared()
+        return rebuilt
 
     def test_get_owning_base(self):
         arr = np.arange(10)
@@ -96,6 +100,21 @@ class TestSerialization:
         rebuilt2 = self.roundtrip(arr2)
         self._assert_shared(rebuilt2)
         np.testing.assert_array_equal(rebuilt2, arr2)
+
+    @pytest.mark.parametrize('context', ['fork', 'spawn'])
+    def test_readingservice_smoke(self, context):
+        if context == 'fork' and not hasattr(os, 'fork'):
+            pytest.skip("Forking is not supported on this platform")
+
+        arr = np.arange(10 * 10).reshape(10, 10)
+        dp = IterableWrapper([arr])
+        dp = dp.share_memory()
+        dp = dp.map(self._assert_shared)
+        dp = dp.sharding_round_robin_dispatch(SHARDING_PRIORITIES.MULTIPROCESSING)
+        rs = MultiProcessingReadingService(2, multiprocessing_context=context)
+        dl = DataLoader2(dp, reading_service=rs)
+        result = list(dl)[0]
+        self._assert_shared(result)
 
 
 if __name__ == '__main__':

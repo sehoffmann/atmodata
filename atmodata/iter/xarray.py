@@ -175,7 +175,8 @@ class XrUnrollIndices(IterDataPipe):
         state = (self.dp, self.dim, self.shuffle, self._shuffle, self._seed, self._rng.getstate())
         if IterDataPipe.getstate_hook is not None:
             return IterDataPipe.getstate_hook(state)
-        return state
+        else:
+            return state
 
     def __setstate__(self, state):
         self.dp, self.dim, self.shuffle, self._shuffle, self._seed, rng_state = state

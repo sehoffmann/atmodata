@@ -1,9 +1,12 @@
+import importlib
+
+
 class PatchedFunction:
-    def __init__(self, module, attr, func):
-        self.module = module
+    def __init__(self, module_name, attr, func):
+        self.module_name = module_name
         self.attr = attr
         self.func = func
-        self.original = getattr(module, attr)
+        self.original = None
         self.patched = False
 
     def __call__(self, *args, **kwargs):
@@ -14,11 +17,14 @@ class PatchedFunction:
 
     def patch(self):
         self.patched = True
-        setattr(self.module, self.attr, self)
+        module = importlib.import_module(self.module_name)
+        self.original = getattr(module, self.attr)
+        setattr(module, self.attr, self)
 
     def unpatch(self):
         self.patched = False
-        setattr(self.module, self.attr, self.original)
+        module = importlib.import_module(self.module_name)
+        setattr(module, self.attr, self.original)
 
 
 def patched_apply_sharding(datapipe, num_of_instances: int, instance_id: int, sharding_group):
@@ -90,12 +96,8 @@ def patched_process_init_fn(
 
 
 def patch_torchdata():
-    # fmt: off
-    import torchdata.dataloader2.reading_service as m
-    PatchedFunction(m, 'process_init_fn', patched_process_init_fn).patch()
-
-    import torch.utils.data.graph_settings as m
-    PatchedFunction(m, 'apply_sharding', patched_apply_sharding).patch()
+    PatchedFunction('torchdata.dataloader2.reading_service', 'process_init_fn', patched_process_init_fn).patch()
+    PatchedFunction('torch.utils.data.graph_settings', 'apply_sharding', patched_apply_sharding).patch()
 
 
 def unpatch_torchdata():
