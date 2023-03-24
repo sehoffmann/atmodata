@@ -1,3 +1,4 @@
+from torch.utils.data.datapipes.iter.sharding import SHARDING_PRIORITIES
 from torchdata.datapipes.iter import IterDataPipe
 
 
@@ -7,7 +8,9 @@ class ForecastingIterDataPipe(IterDataPipe):
         assert rate >= 1
         assert steps >= 1
 
-        pipe = dp.xr_extract_timeseries(steps, rate, dim=dim, shuffle=True, shard=True)
+        pipe = dp.xr_unroll_indices(dim=dim, shuffle=True)
+        pipe = pipe.sharding_filter(SHARDING_PRIORITIES.MULTIPROCESSING)
+        pipe = pipe.xr_extract_timeseries(steps, rate, dim=dim)
         if crop_size:
             if crops_per_sample > 1:
                 pipe = pipe.repeat(crops_per_sample)

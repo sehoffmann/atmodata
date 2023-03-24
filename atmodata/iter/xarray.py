@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 import torch
 import xarray as xr
 from torch.utils.data import functional_datapipe, IterDataPipe
-from torch.utils.data.datapipes.iter.sharding import _ShardingIterDataPipe, SHARDING_PRIORITIES
 
 
 def _as_iterable(data_arrays):
@@ -140,54 +139,65 @@ class XrPrefetcher(IterDataPipe):
         return arr.load()
 
 
-@functional_datapipe("xr_extract_timeseries")
-class XrExtractTimeseries(_ShardingIterDataPipe):
-    def __init__(self, dp, steps, rate, dim='time', shard=False, shuffle=False, seed=None):
+@functional_datapipe("xr_unroll_indices")
+class XrUnrollIndices(IterDataPipe):
+    def __init__(self, dp, dim, shuffle=False):
         self.dp = dp
-        self.steps = steps
-        self.rate = rate
         self.dim = dim
-        self.shard = shard
         self.shuffle = shuffle
-
+        self._shuffle = shuffle
         self._rng = random.Random()
-        self._seed = seed
-        self._instance_id = None
-        self._num_of_instances = None
+        self._seed = None
 
     def set_shuffle(self, shuffle=True):
-        self.shuffle = shuffle
+        self._shuffle = shuffle
         return self
 
     def set_seed(self, seed: int):
         self._seed = seed
         return self
 
-    def apply_sharding(self, num_of_instances, instance_id, sharding_group=SHARDING_PRIORITIES.DEFAULT):
-        if sharding_group != SHARDING_PRIORITIES.MULTIPROCESSING:
-            return
+    def __iter__(self):
+        for i, ds in enumerate(self.dp):
+            if self._seed is not None:
+                self._rng.seed(self._seed + i)
+            else:
+                self._rng.seed(int(torch.empty((), dtype=torch.int64).random_().item()))
 
-        self._instance_id = instance_id
-        self._num_of_instances = num_of_instances
+            indices = list(range(len(ds.coords[self.dim])))
+            if self.shuffle and self._shuffle:
+                self._rng.shuffle(indices)
+
+            for idx in indices:
+                yield (idx, ds)
+
+    def __getstate__(self):
+        state = (self.dp, self.dim, self.shuffle, self._shuffle, self._seed, self._rng.getstate())
+        if IterDataPipe.getstate_hook is not None:
+            return IterDataPipe.getstate_hook(state)
+        return state
+
+    def __setstate__(self, state):
+        self.dp, self.dim, self.shuffle, self._shuffle, self._seed, rng_state = state
+        self._rng = random.Random()
+        self._rng.setstate(rng_state)
+
+
+@functional_datapipe("xr_extract_timeseries")
+class XrExtractTimeseries(IterDataPipe):
+    def __init__(self, dp, steps, rate, dim='time'):
+        self.dp = dp
+        self.steps = steps
+        self.rate = rate
+        self.dim = dim
 
     def __iter__(self):
         T = self.steps * self.rate
-        for i, ds in enumerate(self.dp):
+        for idx, ds in self.dp:
             N = len(ds.variables[self.dim])
-
-            indices = list(range(N - T))
-            if self.shuffle:
-                if self._seed is None:
-                    seed = int(torch.empty((), dtype=torch.int64).random_().item())
-                else:
-                    seed = self._seed + i
-                self._rng.seed(seed)
-                self._rng.shuffle(indices)
-
-            if self.shard and self._instance_id is not None:
-                indices = indices[self._instance_id :: self._num_of_instances]
-
-            for idx in indices:
+            if idx + T > N:
+                continue
+            else:
                 yield ds.isel(**{self.dim: slice(idx, idx + T, self.rate)})
 
 
