@@ -8,6 +8,7 @@ from atmodata.iter.tensor import (
 from atmodata.iter.util import (
     # ------------------------------------------------------ USORT NO SPLIT
     MemorySharer,
+    NestedMapper,
     NonReplicableIterDataPipe,
     RoundRobinMapper,
     RoundRobinTransformer,
@@ -28,6 +29,7 @@ from atmodata.iter.xarray import (
 
 __all__ = [
     'MemorySharer',
+    'NestedMapper',
     'NonReplicableIterDataPipe',
     'RoundRobinMapper',
     'RoundRobinTransformer',

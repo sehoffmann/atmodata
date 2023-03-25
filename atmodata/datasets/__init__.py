@@ -1,3 +1,3 @@
-from .weatherbench import WeatherbenchPathBuilder
+from .weatherbench import Weatherbench, WeatherbenchPathBuilder
 
-__all__ = ['WeatherbenchPathBuilder']
+__all__ = ['Weatherbench', 'WeatherbenchPathBuilder']

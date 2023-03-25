@@ -3,7 +3,7 @@ from . import patching
 
 patching.patch_torchdata()  # TODO: remove this once torchdata is fixed
 
-from . import datasets, iter, map, serialization, tasks, utils
+from . import datasets, iter, map, serialization, tasks, utils, xarray_utils
 
 try:
     from . import version  # fmt: skip
@@ -19,6 +19,7 @@ __all__ = [
     'serialization',
     'tasks',
     'utils',
+    'xarray_utils',
 ]
 
 assert __all__ == sorted(__all__)
