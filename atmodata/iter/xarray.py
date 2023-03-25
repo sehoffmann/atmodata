@@ -50,24 +50,39 @@ class XrVariableGetter(IterDataPipe):
 
 @functional_datapipe("xr_sel")
 class XrSelecter(IterDataPipe):
-    def __init__(self, dp, **selects):
+    def __init__(self, dp, indexers=None, method=None, tolerance=None, drop=False, **indexers_kwargs):
         self.dp = dp
-        self.selects = selects
+        self.indexers = indexers
+        self.method = method
+        self.tolerance = tolerance
+        self.drop = drop
+        self.indexers_kwargs = indexers_kwargs
 
     def __iter__(self):
         for ds in self.dp:
-            yield ds.sel(**self.selects)
+            yield ds.sel(
+                indexers=self.indexers,
+                method=self.method,
+                tolerance=self.tolerance,
+                drop=self.drop,
+                **self.indexers_kwargs,
+            )
 
 
 @functional_datapipe("xr_isel")
 class XrISelecter(IterDataPipe):
-    def __init__(self, dp, **selects):
+    def __init__(self, dp, indexers=None, drop=False, missing_dims='raise', **indexers_kwargs):
         self.dp = dp
-        self.selects = selects
+        self.indexers = indexers
+        self.drop = drop
+        self.missing_dims = missing_dims
+        self.indexers_kwargs = indexers_kwargs
 
     def __iter__(self):
         for ds in self.dp:
-            yield ds.isel(**self.selects)
+            yield ds.isel(
+                indexers=self.indexers, drop=self.drop, missing_dims=self.missing_dims, **self.indexers_kwargs
+            )
 
 
 @functional_datapipe("xr_merge")
