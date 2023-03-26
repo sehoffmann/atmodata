@@ -3,7 +3,7 @@ from . import patching
 
 patching.patch_torchdata()  # TODO: remove this once torchdata is fixed
 
-from . import datasets, iter, map, serialization, tasks, utils, xarray_utils
+from . import builder, datasets, iter, map, serialization, tasks, utils, xarray_utils
 
 try:
     from . import version  # fmt: skip
@@ -12,6 +12,7 @@ except ImportError:
     pass
 
 __all__ = [
+    'builder',
     'datasets',
     'iter',
     'map',

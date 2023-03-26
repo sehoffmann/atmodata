@@ -112,7 +112,7 @@ def reduce_ndarray(arr: np.ndarray):
 
 def share_memory(obj):
     if isinstance(obj, torch.Tensor):
-        return obj.share_memory()
+        return obj.share_memory_()
     else:
         serialized = ForkingPickler.dumps(obj)
         return pickle.loads(serialized)
