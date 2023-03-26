@@ -24,12 +24,12 @@ class AtmodataPipeBuilder:
         self.main_prefetch_cnt = main_prefetch_cnt
         self.device_prefetch_cnt = device_prefetch_cnt
 
-        self.collate_transform_fn = None
-        self.share_main_to_worker = True
-        self.share_worker_to_main = True
-        self.interleaves_batches = False
-        self.n_workers = 0
-        self.device = None
+        self.pre_share_memory(main_to_worker=True, worker_to_main=True)
+        self.interleave_batches(False)
+        self.transfer_to_device(None)
+        self.custom_collate(None)
+        self.cache_data(False)
+        self.multiprocess(0)
 
     def pre_share_memory(self, main_to_worker=True, worker_to_main=True):
         self.share_main_to_worker = main_to_worker
@@ -48,6 +48,10 @@ class AtmodataPipeBuilder:
         self.collate_transform_fn = collate_tranform_fn
         return self
 
+    def cache_data(self, value=True):
+        self.caches_data = value
+        return self
+
     def multiprocess(self, n_workers):
         assert n_workers >= 0
         self.n_workers = n_workers
@@ -62,6 +66,9 @@ class AtmodataPipeBuilder:
 
         if self.dataloading_prefetch_cnt:
             pipe = pipe.prefetch(self.dataloading_prefetch_cnt)
+
+        if self.caches_data:
+            pipe = pipe.in_memory_cache()
 
         # 2. Worker process: Data processing
         if self.n_workers >= 1:
