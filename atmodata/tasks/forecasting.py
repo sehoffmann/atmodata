@@ -23,15 +23,4 @@ class ForecastingIterDataPipe(IterDataPipe):
         return iter(self.dp)
 
 
-class ForecastingTask:
-    def __init__(self, steps, rate, dim='time', crop_size=None, crops_per_sample=1):
-        self.steps = steps
-        self.rate = rate
-        self.dim = dim
-        self.crop_size = crop_size
-        self.crops_per_sample = crops_per_sample
-
-    def __call__(self, dp):
-        return ForecastingIterDataPipe(
-            dp, self.steps, self.rate, dim=self.dim, crop_size=self.crop_size, crops_per_sample=self.crops_per_sample
-        )
+ForecastingTask = ForecastingIterDataPipe.as_transform()

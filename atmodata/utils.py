@@ -1,6 +1,31 @@
+import functools
 import time
 
 import numpy as np
+
+
+class PipeTransform:
+    def __init__(self, transform_fn, *args, **kwargs):
+        self.transform_fn = transform_fn
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, dp):
+        return self.transform_fn(dp, *self.args, **self.kwargs)
+
+
+def as_transform(pipe_cls: type):
+    return functools.partial(PipeTransform, pipe_cls)
+
+
+class SequentialTransform:
+    def __init__(self, *transforms):
+        self.transforms = transforms
+
+    def __call__(self, dp):
+        for transform_fn in self.transforms:
+            dp = transform_fn(dp)
+        return dp
 
 
 def collate_coordinates(coords, all_coordinates):

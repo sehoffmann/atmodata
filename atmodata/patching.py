@@ -99,6 +99,18 @@ def patch_torchdata():
     PatchedFunction('torchdata.dataloader2.reading_service', 'process_init_fn', patched_process_init_fn).patch()
     PatchedFunction('torch.utils.data.graph_settings', 'apply_sharding', patched_apply_sharding).patch()
 
+    # adds as_transform() to IterDataPipe and MapDataPipe
+    from torchdata.datapipes.iter import IterDataPipe
+    from torchdata.datapipes.map import MapDataPipe
+
+    from atmodata.utils import as_transform
+
+    if not hasattr(IterDataPipe, 'as_transform'):
+        IterDataPipe.as_transform = classmethod(as_transform)
+
+    if not hasattr(MapDataPipe, 'as_transform'):
+        IterDataPipe.as_transform = classmethod(as_transform)
+
 
 def unpatch_torchdata():
     # fmt: off
