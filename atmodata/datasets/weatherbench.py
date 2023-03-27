@@ -1,10 +1,12 @@
 import functools
+from pathlib import Path
 
 from torch.utils.data.datapipes.iter.sharding import SHARDING_PRIORITIES
 from torchdata.datapipes.iter import IterableWrapper, IterDataPipe, Zipper
 
 from atmodata.utils import collate_coordinates
 from atmodata.xarray_utils import unstack_coordinate
+
 
 VARIABLE_NAMES = {
     'pv': 'potential_vorticity',
@@ -65,10 +67,11 @@ def get_constants_path(base_dir, suffix='1.40625deg'):
     """
     Returns the path of the file that contains the constant variables.
     """
+    base_dir = Path(base_dir)
     if suffix is None:
-        return f'{base_dir}/constants/constants.nc'
+        return base_dir / 'constants' / 'constants.nc'
     else:
-        return f'{base_dir}/constants/constants_{suffix}.nc'
+        return base_dir / 'constants' / f'constants_{suffix}.nc'
 
 
 def get_path(base_dir, variable, year=None, suffix='1.40625deg'):
@@ -80,10 +83,12 @@ def get_path(base_dir, variable, year=None, suffix='1.40625deg'):
     else:
         assert year is not None
         var_name = VARIABLE_NAMES[variable]
-        path = f'{base_dir}/{var_name}/{var_name}_{year}'
+        path = Path(base_dir) / var_name
         if suffix:
-            path += f'_{suffix}'
-        return path + '.nc'
+            path /= f'{var_name}_{year}_{suffix}.nc'
+        else:
+            path /= f'{var_name}_{year}.nc'
+        return path
 
 
 def aggregate_variables(variables):
