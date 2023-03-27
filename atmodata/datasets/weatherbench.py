@@ -161,8 +161,8 @@ class WeatherBench(IterDataPipe):
             pipe = pipe.xr_open().xr_select_variables(var)
 
             if not is_single_level(var):
-                indices = collate_coordinates(self.multi_level[var], LEVELS)
-                pipe = pipe.xr_isel(level=indices, drop=True)
+                indices = collate_coordinates(self.multi_level[var], LEVELS, no_scalar=True)
+                pipe = pipe.xr_isel(level=indices)
 
             pipe = pipe.xr_split_dim('time', self.shards_per_year)
             shards_single_var.append(pipe)

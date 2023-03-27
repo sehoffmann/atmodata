@@ -106,10 +106,10 @@ def patch_torchdata():
     from atmodata.utils import as_transform
 
     if not hasattr(IterDataPipe, 'as_transform'):
-        IterDataPipe.as_transform = classmethod(as_transform)
+        IterDataPipe.as_transform = as_transform
 
     if not hasattr(MapDataPipe, 'as_transform'):
-        IterDataPipe.as_transform = classmethod(as_transform)
+        IterDataPipe.as_transform = as_transform
 
 
 def unpatch_torchdata():
