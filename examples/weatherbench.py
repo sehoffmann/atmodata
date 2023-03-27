@@ -19,7 +19,16 @@ def main():
     args = parser.parse_args()
 
     dataset = WeatherBench(args.path, args.variables, args.years, shards_per_year=12, shuffle=True)
-    task = ForecastingTask(10, 6, crop_size={'lat': 96, 'lon': 96}, crops_per_sample=4)
+    task = atmodata.utils.SequentialTransform(
+        ForecastingTask(10, 6, crop_size={'lat': 96, 'lon': 96}, crops_per_sample=4),
+        atmodata.iter.XrVariableSelecter.as_transform(
+            {
+                'predict': ['z500', 't500', 'r500'],
+                'auxiliary': ['orography'],
+                'lat': ['lat'],
+            }
+        ),
+    )
 
     builder = AtmodataPipeBuilder(
         dataset,

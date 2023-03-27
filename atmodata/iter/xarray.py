@@ -7,13 +7,18 @@ import xarray as xr
 from torch.utils.data import functional_datapipe, IterDataPipe
 
 
-def _as_iterable(data_arrays):
+def _as_iterable(x):
+    is_iterable = False
     try:
-        iter(data_arrays)
+        iter(x)
+        is_iterable = True
     except TypeError:
-        return list(data_arrays)
-    finally:
-        return data_arrays
+        pass
+
+    if is_iterable and not isinstance(x, str):
+        return x
+    else:
+        return [x]
 
 
 @functional_datapipe("xr_open")
@@ -43,12 +48,30 @@ class XrVariableSelecter(IterDataPipe):
         self.dp = dp
         self.variables = variables
 
+    @staticmethod
+    def _select_vars(ds, vars):
+        vars = _as_iterable(vars)
+
+        ds_new = ds.copy()  # only copies metadata
+        new_vars = []
+        for var in vars:
+            if var in ds.coords:
+                ds_new[var + '_coord'] = ds[var]
+                new_vars.append(var + '_coord')
+            else:
+                new_vars.append(var)
+
+        if len(new_vars) == 1:
+            return ds_new[new_vars[0]]
+        else:
+            return ds_new[new_vars]
+
     def __iter__(self):
         for ds in self.dp:
             if isinstance(self.variables, dict):
-                yield {k: ds[v] for k, v in self.variables.items()}
+                yield {k: self._select_vars(ds, vars) for k, vars in self.variables.items()}
             else:
-                yield ds[self.variables]
+                yield self._select_vars(ds, self.variables)
 
 
 @functional_datapipe("xr_sel")
@@ -267,14 +290,32 @@ class XrRandomCrop(IterDataPipe):
             return candidate
 
 
-@functional_datapipe("xr_to_numpy")
-class XrToNumpy(IterDataPipe):
+@functional_datapipe("xr_to_array")
+class XrToArray(IterDataPipe):
     def __init__(self, dp):
         self.dp = dp
 
     def __iter__(self):
         for ds in self.dp:
             if isinstance(ds, xr.Dataset):
-                yield ds.to_array().to_numpy()
+                yield ds.to_array()
             else:
-                yield ds.to_numpy()
+                yield ds
+
+
+@functional_datapipe("xr_to_numpy")
+class XrToNumpy(IterDataPipe):
+    def __init__(self, dp):
+        self.dp = dp.nested_map(self._to_numpy)
+
+    @staticmethod
+    def _to_numpy(x):
+        if isinstance(x, xr.Dataset):
+            return x.to_array().to_numpy()
+        elif isinstance(x, xr.DataArray):
+            return x.to_numpy()
+        else:
+            return x
+
+    def __iter__(self):
+        return iter(self.dp)

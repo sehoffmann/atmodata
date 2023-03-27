@@ -23,4 +23,4 @@ class ForecastingIterDataPipe(IterDataPipe):
         return iter(self.dp)
 
 
-ForecastingTask = ForecastingIterDataPipe.as_transform()
+ForecastingTask = ForecastingIterDataPipe.as_transform

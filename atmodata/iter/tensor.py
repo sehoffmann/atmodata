@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import functional_datapipe, IterDataPipe
 
+from atmodata.iter.util import NestedMapper
+
 
 @functional_datapipe("th_split")
 class ThSplitter(IterDataPipe):
@@ -53,12 +55,12 @@ class ThBatchInterleaver(IterDataPipe):
 
 
 @functional_datapipe("th_to_device")
-class ThToDevice(IterDataPipe):
+class ThToDevice(NestedMapper):
     def __init__(self, dp, device, non_blocking=False):
+        super().__init__(dp, self._apply)
         self.dp = dp
         self.device = device
         self.non_blocking = non_blocking
 
-    def __iter__(self):
-        for x in self.dp:
-            yield x.to(self.device, non_blocking=self.non_blocking)
+    def _apply(self, x):
+        return x.to(self.device, non_blocking=self.non_blocking)

@@ -1,7 +1,7 @@
-import functools
 import time
 
 import numpy as np
+import torch
 
 
 class PipeTransform:
@@ -14,8 +14,9 @@ class PipeTransform:
         return self.transform_fn(dp, *self.args, **self.kwargs)
 
 
-def as_transform(pipe_cls: type):
-    return functools.partial(PipeTransform, pipe_cls)
+@classmethod
+def as_transform(pipe_cls: type, *args, **kwargs):
+    return PipeTransform(pipe_cls, *args, **kwargs)
 
 
 class SequentialTransform:
@@ -28,7 +29,7 @@ class SequentialTransform:
         return dp
 
 
-def collate_coordinates(coords, all_coordinates):
+def collate_coordinates(coords, all_coordinates, no_scalar=False):
     """
     Tries to find the most efficient form of indexing for the given coordinates to be used with .isel().
     Either returns a scalar index, a slice (of indices) if possible, or a sorted list of indices.
@@ -41,7 +42,10 @@ def collate_coordinates(coords, all_coordinates):
 
     indices = list(all_coordinates.index(c) for c in sorted(coords))
     if len(indices) == 1:
-        return indices[0]
+        if no_scalar:
+            return slice(indices[0], indices[0] + 1)
+        else:
+            return indices[0]
 
     step = indices[1] - indices[0]
     if all(idx == indices[0] + i * step for i, idx in enumerate(indices)):
@@ -62,7 +66,12 @@ def benchmark(dataset, process_time=0, log=True, print_frequency=100):
             break
 
         times.append(time.time() - ts)
-        total_size += batch.nelement() * batch.element_size()
+        if isinstance(batch, torch.Tensor):
+            total_size += batch.nelement() * batch.element_size()
+        elif isinstance(batch, dict):
+            total_size += sum(v.nelement() * v.element_size() for v in batch.values())
+        elif isinstance(batch, (list, tuple)):
+            total_size += sum(v.nelement() * v.element_size() for v in batch)
         i += 1
 
         if process_time:

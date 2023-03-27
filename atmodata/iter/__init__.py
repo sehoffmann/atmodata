@@ -23,6 +23,7 @@ from atmodata.iter.xarray import (
     XrRandomCrop,
     XrSelecter,
     XrSplitDim,
+    XrToArray,
     XrToNumpy,
     XrVariableSelecter,
 )
@@ -46,6 +47,7 @@ __all__ = [
     'XrRandomCrop',
     'XrSelecter',
     'XrSplitDim',
+    'XrToArray',
     'XrToNumpy',
     'XrVariableSelecter',
 ]

@@ -105,7 +105,7 @@ class AtmodataPipeBuilder:
             pipe = pipe.prefetch(self.main_prefetch_cnt)
 
         if self.device is not None:
-            pipe = pipe.th_to_device(self.device)
+            pipe = pipe.th_to_device(self.device, non_blocking=True)
             need_device_prefetch = True
 
         if self.interleaves_batches and self.n_workers > 1:
