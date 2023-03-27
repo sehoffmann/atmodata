@@ -61,12 +61,22 @@ def is_single_level(variable):
     return variable in SINGLE_LEVEL_VARIABLES
 
 
-def get_path(base_dir, variable, year=None, suffix=None):
+def get_constants_path(base_dir, suffix='1.40625deg'):
+    """
+    Returns the path of the file that contains the constant variables.
+    """
+    if suffix is None:
+        return f'{base_dir}/constants/constants.nc'
+    else:
+        return f'{base_dir}/constants/constants_{suffix}.nc'
+
+
+def get_path(base_dir, variable, year=None, suffix='1.40625deg'):
     """
     Returns the path of the file that contains the given variable for the given year.
     """
     if is_constant(variable):
-        return f'{base_dir}/constants/constants_{suffix}.nc'
+        return get_constants_path(base_dir, suffix)
     else:
         assert year is not None
         var_name = VARIABLE_NAMES[variable]
@@ -116,21 +126,25 @@ class WeatherbenchPathBuilder(IterDataPipe):
             yield get_path(self.base_dir, self.variable, year, self.suffix)
 
 
-class Weatherbench(IterDataPipe):
-    def __init__(self, base_dir, variables, years, shards_per_year=1, shuffle=False):
+class WeatherBench(IterDataPipe):
+    def __init__(self, base_dir, variables, years, shards_per_year=1, shuffle=False, suffix='1.40625deg'):
         self.base_dir = base_dir
         self.variables = set(variables)
         self.multi_level, self.single_level, self.constants = aggregate_variables(self.variables)
         self.years = list(iter(years))
         self.shards_per_year = shards_per_year
         self.shuffle = shuffle
+        self.suffix = suffix
 
         dyn_pipe = self._build_dyn_pipe()
-        # constants_pipe = self._build_constants_pipe()
-        self.dp = dyn_pipe
+        constants_pipe = self._build_constants_pipe()
+        self.dp = Zipper(dyn_pipe, constants_pipe).xr_merge()
 
     def _build_constants_pipe(self):
-        return
+        pipe = IterableWrapper([get_constants_path(self.base_dir, self.suffix)])
+        pipe = pipe.xr_open().xr_get_variables(self.constants).xr_load()
+        pipe = pipe.share_memory()
+        return pipe.cycle()
 
     def _build_dyn_pipe(self):
         dyn_vars = set(self.multi_level) | self.single_level
@@ -138,7 +152,7 @@ class Weatherbench(IterDataPipe):
 
         shards_single_var = []
         for pipe, var in zip(forked_years, dyn_vars):
-            pipe = WeatherbenchPathBuilder(pipe, self.base_dir, var)
+            pipe = WeatherbenchPathBuilder(pipe, self.base_dir, var, self.suffix)
             pipe = pipe.xr_open().xr_get_variables(var)
 
             if not is_single_level(var):
