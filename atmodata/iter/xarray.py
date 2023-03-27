@@ -37,15 +37,18 @@ class XrLoader(IterDataPipe):
             yield ds.load()
 
 
-@functional_datapipe("xr_get_variables")
-class XrVariableGetter(IterDataPipe):
+@functional_datapipe("xr_select_variables")
+class XrVariableSelecter(IterDataPipe):
     def __init__(self, dp, variables):
         self.dp = dp
         self.variables = variables
 
     def __iter__(self):
         for ds in self.dp:
-            yield ds[self.variables]
+            if isinstance(self.variables, dict):
+                yield {k: ds[v] for k, v in self.variables.items()}
+            else:
+                yield ds[self.variables]
 
 
 @functional_datapipe("xr_sel")

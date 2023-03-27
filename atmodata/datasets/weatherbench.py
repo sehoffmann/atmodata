@@ -147,7 +147,7 @@ class WeatherBench(IterDataPipe):
 
     def _build_constants_pipe(self):
         pipe = IterableWrapper([get_constants_path(self.base_dir, self.suffix)])
-        pipe = pipe.xr_open().xr_get_variables(self.constants).xr_load()
+        pipe = pipe.xr_open().xr_select_variables(self.constants).xr_load()
         pipe = pipe.share_memory()
         return pipe.cycle()
 
@@ -158,7 +158,7 @@ class WeatherBench(IterDataPipe):
         shards_single_var = []
         for pipe, var in zip(forked_years, dyn_vars):
             pipe = WeatherbenchPathBuilder(pipe, self.base_dir, var, self.suffix)
-            pipe = pipe.xr_open().xr_get_variables(var)
+            pipe = pipe.xr_open().xr_select_variables(var)
 
             if not is_single_level(var):
                 indices = collate_coordinates(self.multi_level[var], LEVELS)

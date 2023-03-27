@@ -24,7 +24,7 @@ from atmodata.iter.xarray import (
     XrSelecter,
     XrSplitDim,
     XrToNumpy,
-    XrVariableGetter,
+    XrVariableSelecter,
 )
 
 __all__ = [
@@ -47,7 +47,6 @@ __all__ = [
     'XrSelecter',
     'XrSplitDim',
     'XrToNumpy',
-    'XrVariableGetter',
+    'XrVariableSelecter',
 ]
-
 assert __all__ == sorted(__all__)

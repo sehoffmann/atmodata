@@ -44,18 +44,26 @@ class RoundRobinMapper(IterDataPipe):
 
 @functional_datapipe('nested_map')
 class NestedMapper(IterDataPipe):
-    def __init__(self, dp, fn):
+    def __init__(self, dp, fn, max_level=None):
         self.dp = dp
         self.fn = fn
+        self.max_level = max_level
+
+    def _nested_map(self, x, level=0):
+        if self.max_level is not None and level > self.max_level:
+            return self.fn(self.x)
+        elif isinstance(x, tuple):
+            return tuple(self._nested_map(elem, level + 1) for elem in x)
+        elif isinstance(x, list):
+            return [self._nested_map(elem, level + 1) for elem in x]
+        elif isinstance(x, dict):
+            return {k: self._nested_map(elem, level + 1) for k, elem in x.items()}
+        else:
+            return self.fn(x)
 
     def __iter__(self):
         for x in self.dp:
-            if isinstance(x, tuple):
-                yield tuple(self.fn(elem) for elem in x)
-            if isinstance(x, list):
-                yield [self.fn(elem) for elem in x]
-            else:
-                raise ValueError(f'NestedMapper only supports single-level tuples and lists for now, got {type(x)}')
+            yield self._nested_map(x)
 
 
 @functional_datapipe('share_memory')
