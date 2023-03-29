@@ -77,9 +77,13 @@ class TestReducer:
 
         # Test: PCA
         reducer = Reducer(axis=1, pca=True)
-        arr = np.array([[0, 0][0, 2]])  # fmt: off
+        # fmt: off
+        arr = np.array([[0, 0],
+                        [0, 2]])
+        # fmt: on
         for _ in range(20):
             reducer.update(arr)
+
         np.testing.assert_array_almost_equal(
             reducer.mean, np.array([0.0, 1.0])
         )  # make sure means and variances are still correctly calculated
