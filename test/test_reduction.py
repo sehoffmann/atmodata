@@ -101,6 +101,9 @@ class TestReducer:
         if failed:
             np.testing.assert_array_almost_equal(reducer.pca_components[0], np.array([0.0, -1.0]))
 
+        # TODO: Test axis=None
+        # TODO: Test axis=list
+
 
 if __name__ == '__main__':
     sys.exit(pytest.main([__file__]))

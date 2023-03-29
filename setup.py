@@ -69,6 +69,11 @@ if __name__ == '__main__':
         python_requires='>=3.8',
         install_requires=requirements,
         packages=packages,
+        entry_points={
+            'console_scripts': [
+                'atmodata-precompute=atmodata.cli:cli_precompute',
+            ],
+        },
         classifiers=[
             'Programming Language :: Python :: 3',
             'License :: Other/Proprietary License',

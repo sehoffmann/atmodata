@@ -178,3 +178,6 @@ class WeatherBench(IterDataPipe):
 
     def __iter__(self):
         return iter(self.dp)
+
+    def __len__(self):
+        return len(self.years) * self.shards_per_year

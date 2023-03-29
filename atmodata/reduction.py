@@ -1,6 +1,9 @@
 import warnings
+from functools import cached_property
 
 import numpy as np
+import tqdm
+import xarray as xr
 from sklearn.decomposition import IncrementalPCA
 
 
@@ -26,18 +29,22 @@ def combine_mean_and_M2(n_a, mean_a, M2_a, n_b, mean_b, M2_b):
 
 
 def unnormalized_variance(data, mean, axis=None):
+    if axis is not None:
+        mean = np.expand_dims(mean, axis=axis)
     diffs = data - mean
     return (diffs * diffs).sum(axis=axis)
 
 
 class Reducer:
     """
-    Incrementally reduces a dataset along a given axis.
+    Incrementally reduces arrays along a given axis.
     Computes mean, variance, min, max, and optionally PCA.
     """
 
-    def __init__(self, axis=None, pca=False, pca_components=None, pca_batch_size=1000):
-        self.axis = axis
+    DEFAULT = tuple()
+
+    def __init__(self, default_axis=None, pca=False, pca_components=None, pca_batch_size=1000):
+        self.default_axis = default_axis
         if pca:
             self.num_pca_components = pca_components
             self._pca = IncrementalPCA(pca_components, batch_size=pca_batch_size)
@@ -108,11 +115,18 @@ class Reducer:
             return None
         return self._pca.noise_variance_
 
-    def update(self, data):
-        if self.axis >= data.ndim:
-            raise ValueError(f"Axis {self.axis} is out of bounds for data with shape {data.shape}")
+    def update(self, data, axis=DEFAULT):
+        if axis is self.DEFAULT:
+            axis = self.default_axis
 
-        reduced_shape = data.shape[: self.axis] + data.shape[self.axis + 1 :]
+        if axis is not None and axis >= data.ndim:
+            raise ValueError(f"Axis {axis} is out of bounds for data with shape {data.shape}")
+
+        if axis is None:
+            reduced_shape = ()
+        else:
+            reduced_shape = data.shape[:axis] + data.shape[axis + 1 :]
+
         if self.shape is None:
             self.shape = reduced_shape
         elif self.shape != reduced_shape:
@@ -125,16 +139,16 @@ class Reducer:
             )
 
         N_old = self.num_samples
-        k = data.shape[self.axis]
+        k = int(np.prod(data.shape) // np.prod(reduced_shape))
 
         if self._pca is None:
-            data_mean = data.mean(axis=self.axis)
-            data_M2 = unnormalized_variance(data, np.expand_dims(data_mean, self.axis), self.axis)
-        data_min = data.min(axis=self.axis)
-        data_max = data.max(axis=self.axis)
+            data_mean = data.mean(axis=axis)
+            data_M2 = unnormalized_variance(data, data_mean, axis)
+        data_min = data.min(axis=axis)
+        data_max = data.max(axis=axis)
 
         if self._pca is not None:
-            flattened = np.moveaxis(data, self.axis, 0).reshape((k, -1))
+            flattened = np.moveaxis(data, axis, 0).reshape((k, -1))
             self._pca.partial_fit(flattened)
 
         if self.num_samples == 0:
@@ -150,3 +164,167 @@ class Reducer:
             self.max = np.maximum(self.max, data_max)
 
         self.num_samples = N_old + k
+
+
+class DatasetReducer:
+    def __init__(self, dim=None, variables=None, dtype=np.float32, pca=False, pca_components=None, pca_batch_size=1000):
+        self.dim = dim
+        self.variables = variables
+        self.dtype = dtype
+        self.pca = pca
+        self.pca_components = pca_components
+        self.pca_batch_size = pca_batch_size
+
+        self.n_updates = 0
+        self.reducers = {}
+        self.coords = {}
+        self.reduced_dims = {}
+
+    def update(self, ds: xr.Dataset):
+        self._clear_statistics()
+        self.n_updates += 1
+        variables = self.variables if self.variables is not None else ds.data_vars
+        for var in variables:
+            data_array = ds[var]
+            axis = None if self.dim is None else data_array.get_axis_num(self.dim)
+
+            if var not in self.reducers:
+                reducer = Reducer(pca=self.pca, pca_components=self.pca_components, pca_batch_size=self.pca_batch_size)
+                self.reducers[var] = reducer
+                if axis is None:
+                    reduced_dims = tuple()
+                else:
+                    removed = np.atleast_1d(axis) % data_array.ndim
+                    reduced_dims = tuple(dim for i, dim in enumerate(data_array.dims) if i not in removed)
+                self.reduced_dims[var] = reduced_dims
+                self.coords[var] = {d: data_array.coords[d] for d in reduced_dims}
+            else:
+                reducer = self.reducers[var]
+
+            reducer.update(data_array.values, axis=axis)
+
+    def _as_xr_array(self, var, values):
+        return xr.DataArray(values.astype(self.dtype), coords=self.coords[var], dims=self.reduced_dims[var])
+
+    def _pca_as_xr_array(self, var, values):
+        coords = {'pca_component': np.arange(self.pca_components)}
+        dims = ('pca_component',)
+        if values.ndim > 1:
+            coords.update(dict(self.coords[var]))
+            dims = dims + self.reduced_dims[var]
+        return xr.DataArray(values.astype(self.dtype), coords=coords, dims=dims)
+
+    def _clear_statistics(self):
+        try:
+            del self.statistics
+        except AttributeError:
+            pass
+
+    @cached_property
+    def statistics(self):
+        ds = xr.Dataset()
+        for var, reducer in self.reducers.items():
+            ds[f'{var}.mean'] = self._as_xr_array(var, reducer.mean)
+            ds[f'{var}.std'] = self._as_xr_array(var, reducer.std)
+            ds[f'{var}.min'] = self._as_xr_array(var, reducer.min)
+            ds[f'{var}.max'] = self._as_xr_array(var, reducer.max)
+
+            if self.pca:
+                ds[f'{var}.pca_components'] = self._pca_as_xr_array(var, reducer.pca_components)
+                ds[f'{var}.pca_singular_values'] = self._pca_as_xr_array(var, reducer.pca_singular_values)
+                ds[f'{var}.pca_variance'] = self._pca_as_xr_array(var, reducer.pca_explained_variance)
+                ds[f'{var}.pca_ratio'] = self._pca_as_xr_array(var, reducer.pca_explained_variance_ratio)
+
+        return ds
+
+
+class StatisticsSaver:
+    def __init__(self, dim='time', dtype=np.float32, daily=True, hourly=True, pca=True, pca_components=128):
+        if hourly and not daily:
+            raise ValueError('hourly=True can only be used in conjuction with daily=True')
+
+        self.dim = dim
+        self.global_reducer = DatasetReducer(dim=dim, dtype=dtype, pca=pca, pca_components=pca_components)
+        if daily:
+            self.daily_reducers = [DatasetReducer(dim=dim, dtype=dtype) for _ in range(365)]
+        else:
+            self.daily_reducers = None
+
+        if hourly:
+            self.hourly_reducers = [DatasetReducer(dim=dim, dtype=dtype) for _ in range(24)]
+        else:
+            self.hourly_reducers = None
+
+    @property
+    def daily(self):
+        return self.daily_reducers is not None
+
+    @property
+    def hourly(self):
+        return self.hourly_reducers is not None
+
+    def _reduce_daily(self, ds):
+        for dayofyear, grouped_ds in ds.groupby(f'{self.dim}.dayofyear'):
+            if dayofyear == 366:
+                dayofyear = 365
+            self.daily_reducers[dayofyear - 1].update(grouped_ds)
+
+    def _reduce_hourly(self, ds, daily_means):
+        anomalies = ds.groupby('time.dayofyear') - daily_means
+        for hour, grouped_ds in anomalies.groupby(f'{self.dim}.hour'):
+            self.hourly_reducers[hour].update(grouped_ds)
+
+    def process(self, dp):
+        self._clear_statistics()
+
+        # global & daily
+        for ds in tqdm.tqdm(dp):
+            self.global_reducer.update(ds)
+
+            if self.daily:
+                self._reduce_daily(ds)
+
+        # hourly
+        if self.hourly:
+            daily_means = self.statistics[[var for var in self.statistics.data_vars if var.endswith('.daily_mean')]]
+            daily_means = daily_means.rename({name: name[: -len('.daily_mean')] for name in daily_means.data_vars})
+
+            for ds in tqdm.tqdm(dp):
+                self._reduce_hourly(ds, daily_means)
+
+            self._clear_statistics()
+
+    def _clear_statistics(self):
+        try:
+            del self.statistics
+        except AttributeError:
+            pass
+
+    @cached_property
+    def statistics(self):
+        datasets = [self.global_reducer.statistics]
+
+        if self.daily:
+            dailies = xr.concat([reducer.statistics for reducer in self.daily_reducers], dim='dayofyear')
+            dailies.coords['dayofyear'] = np.arange(365) + 1
+            new_names = {}
+            for name in dailies.data_vars:
+                var, stat = name.split('.')
+                new_names[name] = f'{var}.daily_{stat}'
+            dailies = dailies.rename(new_names)
+            datasets += [dailies]
+
+        if self.hourly and self.hourly_reducers[0].n_updates > 0:
+            hourly = xr.concat([reducer.statistics for reducer in self.hourly_reducers], dim='hour')
+            hourly.coords['hour'] = np.arange(24)
+            new_names = {}
+            for name in hourly.data_vars:
+                var, stat = name.split('.')
+                new_names[name] = f'{var}.hourly_{stat}'
+            hourly = hourly.rename(new_names)
+            datasets += [hourly]
+
+        return xr.merge(datasets)
+
+    def save(self, path):
+        self.statistics.to_netcdf(path)

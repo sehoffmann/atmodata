@@ -3,7 +3,7 @@ from . import patching
 
 patching.patch_torchdata()  # TODO: remove this once torchdata is fixed
 
-from . import builder, datasets, iter, map, serialization, tasks, utils, xarray_utils
+from . import builder, cli, datasets, iter, map, serialization, tasks, utils, xarray_utils
 
 try:
     from . import version  # fmt: skip
@@ -13,6 +13,7 @@ except ImportError:
 
 __all__ = [
     'builder',
+    'cli',
     'datasets',
     'iter',
     'map',
@@ -22,5 +23,4 @@ __all__ = [
     'utils',
     'xarray_utils',
 ]
-
 assert __all__ == sorted(__all__)
