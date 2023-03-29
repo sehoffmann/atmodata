@@ -59,7 +59,7 @@ class TestReducer:
 
     def test_Reducer(self):
         arr = np.arange(4).reshape(2, 2)
-        reducer = Reducer(axis=1)
+        reducer = Reducer(default_axis=1)
 
         # Test: First reducer
         reducer.update(arr)
@@ -76,7 +76,7 @@ class TestReducer:
         np.testing.assert_array_almost_equal(reducer.max, np.array([10, 30]))
 
         # Test: PCA
-        reducer = Reducer(axis=1, pca=True)
+        reducer = Reducer(default_axis=1, pca=True)
         # fmt: off
         arr = np.array([[0, 0],
                         [0, 2]])
