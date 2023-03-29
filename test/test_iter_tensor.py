@@ -1,7 +1,8 @@
 import functools
-import unittest
+import sys
 
 import atmodata
+import pytest
 import torch
 from atmodata.iter.tensor import ThBatchInterleaver, ThChunker, ThSplitter
 from expecttest import TestCase
@@ -55,4 +56,4 @@ class TestIterTensor(TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    sys.exit(pytest.main([__file__]))

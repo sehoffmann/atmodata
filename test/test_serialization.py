@@ -1,6 +1,6 @@
 import os
 import pickle
-import unittest
+import sys
 
 import numpy as np
 import pytest
@@ -118,4 +118,4 @@ class TestSerialization:
 
 
 if __name__ == '__main__':
-    unittest.main()
+    sys.exit(pytest.main([__file__]))
