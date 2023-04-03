@@ -1,3 +1,10 @@
+from atmodata.iter.normalization import (
+    # ------------------------------------------------------ USORT NO SPLIT
+    find_normalization_pipe,
+    get_denorm_function,
+    NormalizationPipe,
+    XrZScoreNormalization,
+)
 from atmodata.iter.tensor import (
     # ------------------------------------------------------ USORT NO SPLIT
     ThBatchInterleaver,
@@ -32,6 +39,7 @@ __all__ = [
     'MemorySharer',
     'NestedMapper',
     'NonReplicableIterDataPipe',
+    'NormalizationPipe',
     'RoundRobinMapper',
     'RoundRobinTransformer',
     'ThBatchInterleaver',
@@ -50,5 +58,8 @@ __all__ = [
     'XrToArray',
     'XrToNumpy',
     'XrVariableSelecter',
+    'XrZScoreNormalization',
+    'find_normalization_pipe',
+    'get_denorm_function',
 ]
 assert __all__ == sorted(__all__)

@@ -35,6 +35,22 @@ def unnormalized_variance(data, mean, axis=None):
     return (diffs * diffs).sum(axis=axis)
 
 
+def make_compound_variable(var_name, dim_name):
+    return f'{var_name}.{dim_name}'
+
+
+def split_compound_variable(variable):
+    splitted = variable.split('.')
+    if len(splitted) != 2:
+        raise ValueError(f'Invalid compound variable: {variable}')
+    else:
+        return splitted[0], splitted[1]
+
+
+def is_compound_variable(variable):
+    return '.' in variable
+
+
 class Reducer:
     """
     Incrementally reduces arrays along a given axis.
@@ -224,16 +240,22 @@ class DatasetReducer:
     def statistics(self):
         ds = xr.Dataset()
         for var, reducer in self.reducers.items():
-            ds[f'{var}.mean'] = self._as_xr_array(var, reducer.mean)
-            ds[f'{var}.std'] = self._as_xr_array(var, reducer.std)
-            ds[f'{var}.min'] = self._as_xr_array(var, reducer.min)
-            ds[f'{var}.max'] = self._as_xr_array(var, reducer.max)
+            ds[make_compound_variable(var, 'mean')] = self._as_xr_array(var, reducer.mean)
+            ds[make_compound_variable(var, 'std')] = self._as_xr_array(var, reducer.std)
+            ds[make_compound_variable(var, 'min')] = self._as_xr_array(var, reducer.min)
+            ds[make_compound_variable(var, 'max')] = self._as_xr_array(var, reducer.max)
 
             if self.pca:
-                ds[f'{var}.pca_components'] = self._pca_as_xr_array(var, reducer.pca_components)
-                ds[f'{var}.pca_singular_values'] = self._pca_as_xr_array(var, reducer.pca_singular_values)
-                ds[f'{var}.pca_variance'] = self._pca_as_xr_array(var, reducer.pca_explained_variance)
-                ds[f'{var}.pca_ratio'] = self._pca_as_xr_array(var, reducer.pca_explained_variance_ratio)
+                ds[make_compound_variable(var, 'pca_components')] = self._pca_as_xr_array(var, reducer.pca_components)
+                ds[make_compound_variable(var, 'pca_singular_values')] = self._pca_as_xr_array(
+                    var, reducer.pca_singular_values
+                )
+                ds[make_compound_variable(var, 'pca_variance')] = self._pca_as_xr_array(
+                    var, reducer.pca_explained_variance
+                )
+                ds[make_compound_variable(var, 'pca_ratio')] = self._pca_as_xr_array(
+                    var, reducer.pca_explained_variance_ratio
+                )
 
         return ds
 
@@ -309,8 +331,8 @@ class StatisticsSaver:
             dailies.coords['dayofyear'] = np.arange(365) + 1
             new_names = {}
             for name in dailies.data_vars:
-                var, stat = name.split('.')
-                new_names[name] = f'{var}.daily_{stat}'
+                var, stat = split_compound_variable(name)
+                new_names[name] = make_compound_variable(var, f'daily_{stat}')
             dailies = dailies.rename(new_names)
             datasets += [dailies]
 
@@ -319,8 +341,8 @@ class StatisticsSaver:
             hourly.coords['hour'] = np.arange(24)
             new_names = {}
             for name in hourly.data_vars:
-                var, stat = name.split('.')
-                new_names[name] = f'{var}.hourly_{stat}'
+                var, stat = split_compound_variable(name)
+                new_names[name] = make_compound_variable(var, f'hourly_{stat}')
             hourly = hourly.rename(new_names)
             datasets += [hourly]
 

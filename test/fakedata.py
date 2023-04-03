@@ -15,12 +15,17 @@ def _get_coords():
     return _coords
 
 
-def create_fake_dataset(var_name, time_max=100, level_max=3):
+def create_fake_dataset(var_name, time_max=100, level_max=3, value=None):
     only_coords = _get_coords()
     time = only_coords.time[:time_max] if time_max is not None else only_coords.time
     level = only_coords.level[:level_max] if level_max is not None else only_coords.level
     shape = (len(time), len(level), len(only_coords.lat), len(only_coords.lon))
-    data = np.random.rand(*shape)
+
+    if value is not None:
+        data = np.full(shape, value)
+    else:
+        data = np.random.rand(*shape)
+
     da = xr.DataArray(
         data,
         dims=['time', 'level', 'lat', 'lon'],
@@ -31,7 +36,4 @@ def create_fake_dataset(var_name, time_max=100, level_max=3):
             'lon': only_coords.lon,
         },
     )
-    return da
-
-
-create_fake_dataset('t')
+    return xr.Dataset({var_name: da})
