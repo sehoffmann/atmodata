@@ -8,16 +8,23 @@ from atmodata.reduction import StatisticsSaver
 def cli_precompute():
     parser = argparse.ArgumentParser(prog='atmodata-precompute', description='Pre-compute statistics for a dataset.')
     parser.add_argument('--path', type=str, required=True)
-    parser.add_argument('--years', type=int, nargs='+', default=[1990])
+    parser.add_argument('--years', type=int, nargs='+', required=True)
+    parser.add_argument('--variables', type=str, nargs='+', required=True)
+    parser.add_argument('--output', type=str, default='stats.nc')
+    parser.add_argument('--pca-dim', type=int, default=128)
     args = parser.parse_args()
 
-    variables = ['t1000', 'r600']
+    print(f'Loading data from {args.path} for years {args.years}...')
+    print('Calculating statistics for the following variables:')
+    for var in args.variables:
+        print(f' - {var}')
+    print('Output will be saved to ', args.output)
+    print('Calculating statistics...')
 
-    dataset = WeatherBench(args.path, variables, args.years, shards_per_year=12).prefetch(3)
-    saver = StatisticsSaver(dim='time', daily=True)
+    dataset = WeatherBench(args.path, args.variables, args.years, shards_per_year=12).prefetch(3)
+    saver = StatisticsSaver(dim='time', pca_components=args.pca_dim)
     saver.process(dataset)
-    print(saver.statistics)
-    saver.save('stats.nc')
+    saver.save(args.output)
 
 
 if __name__ == '__main__':
