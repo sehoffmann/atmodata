@@ -1,3 +1,4 @@
 xarray[io]>=v2023.02.0
 torchdata>=0.6.0
 scikit-learn>=1.0
+tqdm>=4.60.0
