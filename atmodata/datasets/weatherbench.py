@@ -47,6 +47,7 @@ CONSTANTS = [
 COORDINATES = ['time', 'level', 'lat', 'lon']
 
 LEVELS = [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000]
+assert LEVELS == sorted(LEVELS)
 
 
 def is_constant(variable):
@@ -105,7 +106,7 @@ def aggregate_variables(variables):
             multi_level[var] = set(LEVELS)
 
         found = False
-        for level in LEVELS:
+        for level in reversed(LEVELS):  # reversed to match the longest level first
             level_str = str(level)
             if var.endswith(level_str):
                 raw = var[: -len(level_str)]
