@@ -14,7 +14,7 @@ VARIABLE_NAMES = {
     'r': 'relative_humidity',
     't': 'temperature',
     't2m': '2m_temperature',  # SL
-    'tau_300_700': 'tau_300_700',  # SL
+    'tau_300_700': 'geopotential_thickness',  # SL
     'tcc': 'total_cloud_cover',  # SL
     'tisr': 'toa_incident_solar_radiation',  # SL
     'tp': 'total_precipitation',  # SL
