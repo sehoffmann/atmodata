@@ -319,3 +319,57 @@ class XrToNumpy(IterDataPipe):
 
     def __iter__(self):
         return iter(self.dp)
+
+
+@functional_datapipe('xr_rename')
+class XrRenamer(IterDataPipe):
+    def __init__(self, dp, new_name_or_name_dict=None, **names):
+        self.dp = dp
+        if isinstance(new_name_or_name_dict, str):
+            self.name_dict = new_name_or_name_dict
+        else:
+            self.name_dict = {} if new_name_or_name_dict is None else dict(new_name_or_name_dict)
+            self.name_dict.update(names)
+            for k, v in list(self.name_dict.items()):
+                if k == v:
+                    del self.name_dict[k]
+
+    def __iter__(self):
+        for ds in self.dp:
+            yield ds.rename(self.name_dict)
+
+
+@functional_datapipe('xr_rename_vars')
+class XrVarRenamer(IterDataPipe):
+    def __init__(self, dp, name_dict=None, **names):
+        self.dp = dp
+        if name_dict is None:
+            self.name_dict = {}
+        else:
+            self.name_dict = dict(name_dict)
+        self.name_dict.update(names)
+        for k, v in list(self.name_dict.items()):
+            if k == v:
+                del self.name_dict[k]
+
+    def __iter__(self):
+        for ds in self.dp:
+            yield ds.rename_var(self.name_dict)
+
+
+@functional_datapipe('xr_rename_dims')
+class XrDimRenamer(IterDataPipe):
+    def __init__(self, dp, dims_dict=None, **dims):
+        self.dp = dp
+        if dims_dict is None:
+            self.dims_dict = {}
+        else:
+            self.dims_dict = dict(dims_dict)
+        self.dims_dict.update(dims)
+        for k, v in list(self.dims_dict.items()):
+            if k == v:
+                del self.dims_dict[k]
+
+    def __iter__(self):
+        for ds in self.dp:
+            yield ds.rename(self.dims_dict)

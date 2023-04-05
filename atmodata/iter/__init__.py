@@ -21,6 +21,7 @@ from atmodata.iter.util import (
     RoundRobinTransformer,
 )
 from atmodata.iter.xarray import (
+    XrDimRenamer,
     XrExtractTimeseries,
     XrISelecter,
     XrLoader,
@@ -28,11 +29,13 @@ from atmodata.iter.xarray import (
     XrOpener,
     XrPrefetcher,
     XrRandomCrop,
+    XrRenamer,
     XrSelecter,
     XrSplitDim,
     XrToArray,
     XrToNumpy,
     XrVariableSelecter,
+    XrVarRenamer,
 )
 
 __all__ = [
@@ -46,6 +49,7 @@ __all__ = [
     'ThConcatter',
     'ThSplitter',
     'ThToDevice',
+    'XrDimRenamer',
     'XrExtractTimeseries',
     'XrISelecter',
     'XrLoader',
@@ -53,10 +57,12 @@ __all__ = [
     'XrOpener',
     'XrPrefetcher',
     'XrRandomCrop',
+    'XrRenamer',
     'XrSelecter',
     'XrSplitDim',
     'XrToArray',
     'XrToNumpy',
+    'XrVarRenamer',
     'XrVariableSelecter',
     'XrZScoreNormalization',
     'find_normalization_pipe',

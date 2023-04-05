@@ -1,3 +1,7 @@
+from .common import Coord
+
+from .era5 import ERA5
+
 from .weatherbench import (
     # ------------------------------------------------------ USORT NO SPLIT
     WeatherBench,
@@ -5,6 +9,8 @@ from .weatherbench import (
 )
 
 __all__ = [
+    'Coord',
+    'ERA5',
     'WeatherBench',
     'WeatherbenchPathBuilder',
 ]
