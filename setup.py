@@ -74,6 +74,10 @@ if __name__ == '__main__':
                 'atmodata-precompute=atmodata.cli:cli_precompute',
             ],
         },
+        project_urls={
+            'Documentation': 'https://atmodata.readthedocs.io/en/latest/',
+            'Source Code': 'https://github.com/sehoffmann/atmodata',
+        },
         classifiers=[
             'Programming Language :: Python :: 3',
             'License :: Other/Proprietary License',
