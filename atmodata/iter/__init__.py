@@ -5,6 +5,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 '''
 
+from atmodata.iter.horovod import HorovodFullSync
 from atmodata.iter.normalization import (
     # ------------------------------------------------------ USORT NO SPLIT
     find_normalization_pipe,
@@ -46,6 +47,7 @@ from atmodata.iter.xarray import (
 )
 
 __all__ = [
+    'HorovodFullSync',
     'MemorySharer',
     'NestedMapper',
     'NonReplicableIterDataPipe',

@@ -10,7 +10,7 @@ from . import patching
 
 patching.patch_torchdata()  # TODO: remove this once torchdata is fixed
 
-from . import builder, cli, datasets, iter, map, serialization, tasks, utils, xarray_utils
+from . import builder, cli, datasets, iter, map, reading_service, serialization, tasks, utils, xarray_utils
 
 try:
     from . import version  # fmt: skip
@@ -25,6 +25,7 @@ __all__ = [
     'iter',
     'map',
     'patching',
+    'reading_service',
     'serialization',
     'tasks',
     'utils',
