@@ -42,3 +42,13 @@ if hvd is not None:
 
                 if not exhausted:
                     yield x
+
+else:
+
+    @functional_datapipe('horovod_full_sync')
+    class HorovodFullSync(IterDataPipe):
+        def __init__(self, dp):
+            self.dp = dp
+
+        def __iter__(self):
+            yield from self.dp
