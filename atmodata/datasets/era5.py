@@ -188,6 +188,8 @@ class ERA5(IterDataPipe):
     def _build_pipe(self):
         n_forks = len(self.single_level) + sum(len(levels) for levels in self.multi_level.values())
         years_pipes = IterableWrapper(self.years).fork(n_forks)
+        if isinstance(years_pipes, IterableWrapper):
+            years_pipes = [years_pipes]  # c.f. https://github.com/pytorch/data/issues/1164
         idx = 0
 
         single_level_pipes = []

@@ -162,6 +162,8 @@ class WeatherBench(IterDataPipe):
     def _build_dyn_pipe(self):
         dyn_vars = set(self.multi_level) | self.single_level
         forked_years = IterableWrapper(self.years).fork(len(dyn_vars))
+        if isinstance(forked_years, IterableWrapper):
+            forked_years = [forked_years]  # c.f. https://github.com/pytorch/data/issues/1164
 
         shards_single_var = []
         for pipe, var in zip(forked_years, dyn_vars):
