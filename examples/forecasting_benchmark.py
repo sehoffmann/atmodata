@@ -22,11 +22,19 @@ def main():
     parser.add_argument('--variables', type=str, nargs='+', default=['z500', 't500'])
     parser.add_argument('--years', type=int, nargs='+', default=[1990])
     parser.add_argument('--batch-size', type=int, default=32)
-    parser.add_argument('--workers', type=int, default=4)
+    parser.add_argument('--workers', type=int, default=0)
     parser.add_argument('--parallel-shards', type=int, default=3)
     parser.add_argument('--reuse-factor', type=float, default=1.0)
 
     args = parser.parse_args()
+    print(f'Benchmarking {args.dataset}')
+    print(f'* Vars: {args.variables}')
+    print(f'* Years: {args.years}')
+    print(f'* Workers: {args.workers}')
+    print(f'* Batch size: {args.batch_size}')
+    print(f'* Parallel shards: {args.parallel_shards}')
+    print(f'* Reuse factor: {args.reuse_factor}')
+    print(f'* Path: {args.path}')
 
     if args.dataset == 'WeatherBench':
         dataset_cls = WeatherBench
@@ -52,11 +60,12 @@ def main():
         task,
         batch_size=args.batch_size,
         num_parallel_shards=args.parallel_shards,
-        dataloading_prefetch_cnt=6,
+        dataloading_prefetch_cnt=3,
         device_prefetch_cnt=2,
     )
     dataloader = builder.multiprocess(args.workers).transfer_to_device('cuda').build_dataloader()
 
+    print('-' * 50)
     benchmark(dataloader, 0)
 
 
