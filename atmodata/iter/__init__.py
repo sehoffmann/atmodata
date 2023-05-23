@@ -22,6 +22,7 @@ from atmodata.iter.tensor import (
 )
 from atmodata.iter.util import (
     # ------------------------------------------------------ USORT NO SPLIT
+    DebugPrinter,
     MemorySharer,
     NestedMapper,
     NonReplicableIterDataPipe,
@@ -47,6 +48,7 @@ from atmodata.iter.xarray import (
 )
 
 __all__ = [
+    'DebugPrinter',
     'HorovodFullSync',
     'MemorySharer',
     'NestedMapper',

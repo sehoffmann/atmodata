@@ -25,6 +25,26 @@ class NonReplicableIterDataPipe(IterDataPipe):
         return False
 
 
+@functional_datapipe('debug_print')
+class DebugPrinter(IterDataPipe):
+    def __init__(self, dp, prefix='', print_index=False, print_element=True, flush=True):
+        self.dp = dp
+        self.prefix = prefix
+        self.print_index = print_index
+        self.print_element = print_element
+        self.flush = flush
+
+    def __iter__(self):
+        for i, x in enumerate(self.dp):
+            string = self.prefix
+            if self.print_element:
+                string += f'{x}'
+            if self.print_index:
+                string += f'#{i}'
+            print(string, flush=self.flush)
+            yield x
+
+
 @functional_datapipe('round_robin_transform')
 class RoundRobinTransformer(IterDataPipe):
     def __init__(self, dp, forks, transform_func):
