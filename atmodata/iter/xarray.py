@@ -51,12 +51,12 @@ class XrLoader(IterDataPipe):
 
 @functional_datapipe("xr_select_variables")
 class XrVariableSelecter(IterDataPipe):
-    def __init__(self, dp, variables):
+    def __init__(self, dp, variables, keep_dataset=False):
         self.dp = dp
         self.variables = variables
+        self.keep_dataset = keep_dataset
 
-    @staticmethod
-    def _select_vars(ds, vars):
+    def _select_vars(self, ds, vars):
         vars = _as_iterable(vars)
 
         ds_new = ds.copy()  # only copies metadata
@@ -68,7 +68,7 @@ class XrVariableSelecter(IterDataPipe):
             else:
                 new_vars.append(var)
 
-        if len(new_vars) == 1:
+        if len(new_vars) == 1 and not self.keep_dataset:
             return ds_new[new_vars[0]]
         else:
             return ds_new[new_vars]

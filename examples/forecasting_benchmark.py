@@ -51,7 +51,8 @@ def main():
         atmodata.iter.XrVariableSelecter.as_transform(
             {
                 'predict': ['z500', 't500'],
-            }
+            },
+            keep_dataset=True,
         ),
     )
 
