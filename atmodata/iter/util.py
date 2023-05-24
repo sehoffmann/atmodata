@@ -13,6 +13,24 @@ from torchdata.datapipes.iter import IterDataPipe
 import atmodata.serialization
 
 
+@functional_datapipe('assure_tuple')
+class TupleAssurer(IterDataPipe):
+    """
+    Assures that the data pipe returns tuples.
+    If the data pipe returns a single element, it is wrapped in a singleton tuple.
+    """
+
+    def __init__(self, dp):
+        self.dp = dp
+
+    def __iter__(self):
+        for x in self.dp:
+            if isinstance(x, tuple):
+                yield x
+            else:
+                yield (x,)
+
+
 @functional_datapipe('non_replicable')
 class NonReplicableIterDataPipe(IterDataPipe):
     def __init__(self, dp):

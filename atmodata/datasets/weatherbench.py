@@ -181,7 +181,7 @@ class WeatherBench(IterDataPipe):
         if self.shuffle:
             dyn_pipe = dyn_pipe.shuffle(buffer_size=len(self.years) * self.shards_per_year)
         dyn_pipe = dyn_pipe.sharding_filter(SHARDING_PRIORITIES.DISTRIBUTED)
-        dyn_pipe = dyn_pipe.xr_prefetch(buffer_size=0)
+        dyn_pipe = dyn_pipe.xr_parallel_load()
         dyn_pipe = dyn_pipe.nested_map(functools.partial(unstack_coordinate, dim='level')).flatten()
         dyn_pipe = dyn_pipe.xr_merge()
         return dyn_pipe

@@ -142,49 +142,19 @@ class XrSplitDim(IterDataPipe):
                 yield ds.isel(**{self.dim: slice(i * size, (i + 1) * size)})
 
 
-@functional_datapipe("xr_prefetch")
-class XrPrefetcher(IterDataPipe):
-    def __init__(self, dp, buffer_size=1, n_threads=4, executor=None):
+@functional_datapipe("xr_parallel_load")
+class XrParallelLoader(IterDataPipe):
+    def __init__(self, dp, n_threads=4, executor=None):
         self.dp = dp
-        self.buffer_size = buffer_size
         self.n_threads = n_threads
-        self.executor = executor
-        self.buffer = []
+        self.executor_cls = executor if executor else ThreadPoolExecutor
 
     def __iter__(self):
-        executor_cls = self.executor if self.executor is not None else ThreadPoolExecutor
-        it = iter(self.dp)
-        with executor_cls(self.n_threads) as executor:
-            try:
-                for _ in range(self.buffer_size + 1):
-                    data_arrays = _as_iterable(next(it))
-                    self.buffer.append([executor.submit(XrPrefetcher._ld, da) for da in data_arrays])
-
-                while True:
-                    futures = self.buffer.pop(0)
-                    concurrent.futures.wait(futures)
-
-                    if len(futures) == 1:
-                        yield futures[0].result()
-                    else:
-                        yield [future.result() for future in futures]
-
-                    data_arrays = _as_iterable(next(it))
-                    self.buffer.append([executor.submit(XrPrefetcher._ld, da) for da in data_arrays])
-
-            except StopIteration:
-                while self.buffer:
-                    futures = self.buffer.pop(0)
-                    concurrent.futures.wait(futures)
-
-                    if len(futures) == 1:
-                        yield futures[0].result()
-                    else:
-                        yield [future.result() for future in futures]
-
-    @staticmethod
-    def _ld(arr):
-        return arr.load()
+        with self.executor_cls(self.n_threads) as executor:
+            for data_arrays in self.dp:
+                futures = tuple(executor.submit(xr.DataArray.load, da) for da in data_arrays)
+                concurrent.futures.wait(futures)
+                yield tuple(future.result() for future in futures)
 
 
 @functional_datapipe("xr_unroll_indices")

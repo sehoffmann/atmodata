@@ -214,7 +214,7 @@ class ERA5(IterDataPipe):
             pipe = pipe.shuffle(buffer_size=len(self.years) * self.shards_per_year)
 
         pipe = pipe.sharding_filter(SHARDING_PRIORITIES.DISTRIBUTED)
-        pipe = pipe.xr_prefetch(buffer_size=0)
+        pipe = pipe.xr_parallel_load()
         pipe = pipe.xr_merge()
 
         if self.standardize_coordinates:
