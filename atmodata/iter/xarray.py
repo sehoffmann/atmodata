@@ -312,13 +312,22 @@ class XrToArray(IterDataPipe):
 
 @functional_datapipe("xr_to_numpy")
 class XrToNumpy(IterDataPipe):
+    """
+    Converts a possibly nested collection of xarray `Dataset` or `DataArray` to `numpy.array`.
+    Empty Datasets and DataArrays are returned as np.array(nan). Elements that are not Datasets or DataArrays are left unchanged.
+    Datasets are flattened to arrays using `Dataset.to_array()`, which stacks all variables along a new dimension.
+    """
+
     def __init__(self, dp):
         self.dp = dp.nested_map(self._to_numpy)
 
     @staticmethod
     def _to_numpy(x):
         if isinstance(x, xr.Dataset):
-            return x.to_array().to_numpy()
+            if x.data_vars:
+                return x.to_array().to_numpy()
+            else:
+                return xr.DataArray().to_numpy()
         elif isinstance(x, xr.DataArray):
             return x.to_numpy()
         else:
