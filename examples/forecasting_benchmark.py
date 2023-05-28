@@ -25,6 +25,7 @@ def main():
     parser.add_argument('--workers', type=int, default=0)
     parser.add_argument('--parallel-shards', type=int, default=3)
     parser.add_argument('--reuse-factor', type=float, default=1.0)
+    parser.add_argument('--synthetic', action='store_true')
 
     args = parser.parse_args()
     print(f'Benchmarking {args.dataset}')
@@ -34,7 +35,8 @@ def main():
     print(f'* Batch size: {args.batch_size}')
     print(f'* Parallel shards: {args.parallel_shards}')
     print(f'* Reuse factor: {args.reuse_factor}')
-    print(f'* Path: {args.path}')
+    print(f'* Synthetic: {args.synthetic}')
+    print(f'* Path: {None if args.synthetic else args.path}')
 
     if args.dataset == 'WeatherBench':
         dataset_cls = WeatherBench
@@ -45,7 +47,9 @@ def main():
         shards_per_year = 12 * 2
         crops_per_sample = int(math.ceil((720 * 1440) / (96 * 96) * args.reuse_factor))
 
-    dataset = dataset_cls(args.path, args.variables, args.years, shards_per_year=shards_per_year, shuffle=True)
+    dataset = dataset_cls(
+        args.path, args.variables, args.years, shards_per_year=shards_per_year, shuffle=True, synthetic=args.synthetic
+    )
     task = atmodata.utils.SequentialTransform(
         ForecastingTask(10, 6, crop_size={'lat': 96, 'lon': 96}, crops_per_sample=crops_per_sample),
         atmodata.iter.XrVariableSelecter.as_transform(

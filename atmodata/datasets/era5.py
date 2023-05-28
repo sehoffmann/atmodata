@@ -8,6 +8,8 @@ LICENSE file in the root directory of this source tree.
 import functools
 from pathlib import Path
 
+import numpy as np
+import xarray as xr
 from torch.utils.data.datapipes.iter.sharding import SHARDING_PRIORITIES
 from torchdata.datapipes.iter import IterableWrapper, IterDataPipe, Zipper
 
@@ -164,8 +166,33 @@ def aggregate_variables(variables):
     return multi_level, single_level
 
 
+def create_synthetic(timesteps, variable='t2m'):
+    data = np.random.randn(timesteps, 720, 1440).astype('float32')
+    time = np.datetime64('1979-01-01 00:00') + np.arange(timesteps, dtype='timedelta64[h]')
+    da = xr.DataArray(
+        data,
+        dims=['time', 'latitude', 'longitude'],
+        name=variable,
+        coords={
+            'time': time.astype('datetime64[ns]'),
+            'latitude': np.linspace(90, -90, 720, endpoint=False, dtype='float32'),
+            'longitude': np.linspace(0, 360, 1440, endpoint=False, dtype='float32'),
+        },
+    )
+    return da
+
+
 class ERA5(IterDataPipe):
-    def __init__(self, base_dir, variables, years, shards_per_year=1, shuffle=False, standardize_coordinates=True):
+    def __init__(
+        self,
+        base_dir,
+        variables,
+        years,
+        shards_per_year=1,
+        shuffle=False,
+        standardize_coordinates=True,
+        synthetic=False,
+    ):
         self.base_dir = base_dir
         self.variables = set(variables)
         self.multi_level, self.single_level = aggregate_variables(self.variables)
@@ -173,17 +200,20 @@ class ERA5(IterDataPipe):
         self.shards_per_year = shards_per_year
         self.shuffle = shuffle
         self.standardize_coordinates = standardize_coordinates
+        self.synthetic = synthetic
 
         self.dp = self._build_pipe()
 
     def _open_dataset(self, pipe, var, level=None):
-        pipe = pipe.xr_open()
-        pipe = pipe.xr_select_variables(var)
-
-        if level is not None:
-            pipe = pipe.xr_rename(f'{var}{level}')
-
-        return pipe.xr_split_dim('time', self.shards_per_year)
+        if self.synthetic:
+            synthetic_ds = create_synthetic(366 * 24 // self.shards_per_year, f'{var}{level}' if level else var)
+            return IterableWrapper([synthetic_ds] * self.shards_per_year)
+        else:
+            pipe = pipe.xr_open()
+            pipe = pipe.xr_select_variables(var)
+            if level:
+                pipe = pipe.xr_rename(f'{var}{level}')
+            return pipe.xr_split_dim('time', self.shards_per_year)
 
     def _build_pipe(self):
         n_forks = len(self.single_level) + sum(len(levels) for levels in self.multi_level.values())
