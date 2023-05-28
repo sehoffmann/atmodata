@@ -17,8 +17,8 @@ class AtmodataPipeBuilder:
         batch_size,
         num_parallel_shards=1,
         dataloading_prefetch_cnt=1,
-        worker_prefetch_cnt=10,
-        main_prefetch_cnt=10,
+        worker_prefetch_cnt=5,
+        main_prefetch_cnt=5,
         device_prefetch_cnt=1,
     ):
         self.dataset = dataset
@@ -77,21 +77,28 @@ class AtmodataPipeBuilder:
         if self.caches_data:
             pipe = pipe.in_memory_cache()
 
+        pipe = pipe.debug_print('main_pre', print_index=True, print_element=False)
+
         # 2. Worker process: Data processing
         if self.n_workers >= 1:
             if self.n_workers > 1:
                 pipe = pipe.repeat(self.n_workers)
             pipe = pipe.sharding_round_robin_dispatch(SHARDING_PRIORITIES.MULTIPROCESSING)
+            pipe = pipe.debug_print('worker_A', print_index=True, print_element=False)
 
         if self.num_parallel_shards > 1:
             pipe = pipe.round_robin_transform(self.num_parallel_shards, self.task)
+            pipe = pipe.debug_print('TASK')
         else:
             pipe = self.task(pipe)
+            pipe = pipe.debug_print('TASK')
 
         pipe = pipe.xr_to_numpy()
+        # pipe = pipe.debug_print('NUMPY')
 
         if self.batch_size:
             pipe = pipe.batch(self.batch_size)
+            # pipe = pipe.debug_print('worker_batch', print_index=True, print_element=False)
 
         if self.collate_transform_fn is not None:
             pipe = self.collate_transform_fn(pipe)
@@ -103,13 +110,16 @@ class AtmodataPipeBuilder:
 
         if self.worker_prefetch_cnt and self.n_workers > 0:
             pipe = pipe.prefetch(self.worker_prefetch_cnt)
+            pipe = pipe.debug_print('worker_prefetch', print_index=True, print_element=False)
 
         # 3. Main process: Aggregation
         need_device_prefetch = False
         pipe = pipe.non_replicable()
+        pipe = pipe.debug_print('main_A', print_index=True, print_element=False)
 
         if self.main_prefetch_cnt:
             pipe = pipe.prefetch(self.main_prefetch_cnt)
+            # pipe = pipe.debug_print('main_B', print_index=True, print_element=False)
 
         if self.device is not None:
             pipe = pipe.th_to_device(self.device, non_blocking=True)
@@ -121,6 +131,7 @@ class AtmodataPipeBuilder:
 
         if self.device_prefetch_cnt and need_device_prefetch:
             pipe = pipe.prefetch(self.device_prefetch_cnt)
+            pipe = pipe.debug_print('main_C', print_index=True, print_element=False)
 
         return pipe
 

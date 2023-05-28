@@ -69,6 +69,7 @@ def benchmark(dataset, process_time=0, log=True, print_frequency=100):
     while True:
         ts = time.time()
         batch = next(it, None)
+        print(f'!! Batch {i} !!')
         if batch is None:
             break
 
