@@ -5,12 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "ERA5 Bench (Synthetic)",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "examples/forecasting_benchmark.py",
+            "args": ["--dataset","ERA5","--path","foo","--synthetic","--workers","1"],
             "console": "integratedTerminal",
-            "justMyCode": true,
+            "justMyCode": false,
             "subProcess": true
         }
     ]
