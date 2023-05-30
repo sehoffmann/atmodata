@@ -207,7 +207,7 @@ class ERA5(IterDataPipe):
     def _open_dataset(self, pipe, var, level=None):
         if self.synthetic:
             synthetic_ds = create_synthetic(366 * 24 // self.shards_per_year, f'{var}{level}' if level else var)
-            return IterableWrapper([synthetic_ds] * self.shards_per_year)
+            return IterableWrapper([synthetic_ds]).share_memory().repeat(self.shards_per_year)
         else:
             pipe = pipe.xr_open()
             pipe = pipe.xr_select_variables(var)
