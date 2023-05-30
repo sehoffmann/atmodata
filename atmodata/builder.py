@@ -88,10 +88,10 @@ class AtmodataPipeBuilder:
 
         if self.num_parallel_shards > 1:
             pipe = pipe.round_robin_transform(self.num_parallel_shards, self.task)
-            pipe = pipe.debug_print('TASK')
+            # pipe = pipe.debug_print('TASK')
         else:
             pipe = self.task(pipe)
-            pipe = pipe.debug_print('TASK')
+            # pipe = pipe.debug_print('TASK')
 
         pipe = pipe.xr_to_numpy()
         # pipe = pipe.debug_print('NUMPY')
