@@ -6,6 +6,7 @@ LICENSE file in the root directory of this source tree.
 '''
 
 import functools
+import os
 
 from torchdata.datapipes import functional_datapipe
 from torchdata.datapipes.iter import IterDataPipe
@@ -45,20 +46,23 @@ class NonReplicableIterDataPipe(IterDataPipe):
 
 @functional_datapipe('debug_print')
 class DebugPrinter(IterDataPipe):
-    def __init__(self, dp, prefix='', print_index=False, print_element=True, flush=True):
+    def __init__(self, dp, prefix='', print_index=False, print_element=True, print_pid=True, flush=True):
         self.dp = dp
         self.prefix = prefix
         self.print_index = print_index
         self.print_element = print_element
+        self.print_pid = print_pid
         self.flush = flush
 
     def __iter__(self):
         for i, x in enumerate(self.dp):
             string = self.prefix
-            if self.print_element:
-                string += f'{x}'
+            if self.print_pid:
+                string += f'@{os.getpid()}'
             if self.print_index:
                 string += f'#{i}'
+            if self.print_element:
+                string += f' = {x}'
             print(string, flush=self.flush)
             yield x
 
