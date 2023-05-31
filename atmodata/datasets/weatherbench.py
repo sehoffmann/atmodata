@@ -140,7 +140,9 @@ class WeatherbenchPathBuilder(IterDataPipe):
 
 
 class WeatherBench(IterDataPipe):
-    def __init__(self, base_dir, variables, years, shards_per_year=1, shuffle=False, suffix='1.40625deg'):
+    def __init__(
+        self, base_dir, variables, years, shards_per_year=1, shuffle=False, suffix='1.40625deg', engine='netcdf4'
+    ):
         self.base_dir = base_dir
         self.variables = set(variables)
         self.multi_level, self.single_level, self.constants = aggregate_variables(self.variables)
@@ -148,6 +150,7 @@ class WeatherBench(IterDataPipe):
         self.shards_per_year = shards_per_year
         self.shuffle = shuffle
         self.suffix = suffix
+        self.engine = engine
 
         dyn_pipe = self._build_dyn_pipe()
         constants_pipe = self._build_constants_pipe()
@@ -155,7 +158,7 @@ class WeatherBench(IterDataPipe):
 
     def _build_constants_pipe(self):
         pipe = IterableWrapper([get_constants_path(self.base_dir, self.suffix)])
-        pipe = pipe.xr_open().xr_select_variables(self.constants).xr_load()
+        pipe = pipe.xr_open(engine=self.engine).xr_select_variables(self.constants).xr_load()
         pipe = pipe.share_memory()
         return pipe.cycle()
 
@@ -168,7 +171,7 @@ class WeatherBench(IterDataPipe):
         shards_single_var = []
         for pipe, var in zip(forked_years, dyn_vars):
             pipe = WeatherbenchPathBuilder(pipe, self.base_dir, var, self.suffix)
-            pipe = pipe.xr_open().xr_select_variables(var)
+            pipe = pipe.xr_open(engine=self.engine).xr_select_variables(var)
 
             if not is_single_level(var):
                 indices = collate_coordinates(self.multi_level[var], LEVELS, no_scalar=True)

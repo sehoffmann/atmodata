@@ -191,6 +191,7 @@ class ERA5(IterDataPipe):
         shards_per_year=1,
         shuffle=False,
         standardize_coordinates=True,
+        engine='netcdf4',
         synthetic=False,
     ):
         self.base_dir = base_dir
@@ -200,6 +201,7 @@ class ERA5(IterDataPipe):
         self.shards_per_year = shards_per_year
         self.shuffle = shuffle
         self.standardize_coordinates = standardize_coordinates
+        self.engine = engine
         self.synthetic = synthetic
 
         self.dp = self._build_pipe()
@@ -209,7 +211,7 @@ class ERA5(IterDataPipe):
             synthetic_ds = create_synthetic((366 * 24) // self.shards_per_year, f'{var}{level}' if level else var)
             return IterableWrapper([synthetic_ds]).share_memory().repeat(self.shards_per_year)
         else:
-            pipe = pipe.xr_open()
+            pipe = pipe.xr_open(engine=self.engine)
             pipe = pipe.xr_select_variables(var)
             if level:
                 pipe = pipe.xr_rename(f'{var}{level}')
