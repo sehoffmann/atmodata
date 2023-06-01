@@ -11,6 +11,7 @@ from atmodata.iter.normalization import (
     find_normalization_pipe,
     get_denorm_function,
     NormalizationPipe,
+    XrManualZScoreNormalization,
     XrZScoreNormalization,
 )
 from atmodata.iter.tensor import (
@@ -66,6 +67,7 @@ __all__ = [
     'XrExtractTimeseries',
     'XrISelecter',
     'XrLoader',
+    'XrManualZScoreNormalization',
     'XrMerge',
     'XrOpener',
     'XrParallelLoader',

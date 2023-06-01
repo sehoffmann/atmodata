@@ -6,7 +6,9 @@ LICENSE file in the root directory of this source tree.
 '''
 
 from torch.utils.data.datapipes.iter.sharding import SHARDING_PRIORITIES
-from torchdata.dataloader2 import DataLoader2, MultiProcessingReadingService
+from torchdata.dataloader2 import DataLoader2, MultiProcessingReadingService, SequentialReadingService
+
+import atmodata.reading_service
 
 
 class AtmodataPipeBuilder:
@@ -125,18 +127,24 @@ class AtmodataPipeBuilder:
         return pipe
 
     def build_dataloader(self, horovod=False):
+        reading_services = []
+        if horovod:
+            if not atmodata.reading_service.HAS_HOROVOD:
+                raise ValueError('Horovod is not available')
+            reading_services.append(atmodata.reading_service.HorovodReadingService())
+
         if self.n_workers > 0:
             mprs = MultiProcessingReadingService(
                 self.n_workers,
                 worker_prefetch_cnt=0,
                 main_prefetch_cnt=0,
             )
-            reading_service = mprs
-        else:
-            reading_service = None
+            reading_services.append(mprs)
+
+        rs = None if len(reading_services) == 0 else SequentialReadingService(*reading_services)
 
         dataloader = DataLoader2(
             self.build_pipe(),
-            reading_service=reading_service,
+            reading_service=rs,
         )
         return dataloader
