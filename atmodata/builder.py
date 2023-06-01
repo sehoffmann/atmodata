@@ -17,8 +17,8 @@ class AtmodataPipeBuilder:
         batch_size,
         num_parallel_shards=1,
         dataloading_prefetch_cnt=1,
-        worker_prefetch_cnt=10,
-        main_prefetch_cnt=10,
+        worker_prefetch_cnt=3,
+        main_prefetch_cnt=3,
         device_prefetch_cnt=1,
     ):
         self.dataset = dataset
