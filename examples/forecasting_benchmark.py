@@ -86,7 +86,6 @@ def main():
             {
                 'predict': ['z500', 't500'],
             },
-            keep_dataset=True,
         ),
     )
 

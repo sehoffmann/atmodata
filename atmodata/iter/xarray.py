@@ -51,16 +51,29 @@ class XrLoader(IterDataPipe):
 
 @functional_datapipe("xr_select_variables")
 class XrVariableSelecter(IterDataPipe):
-    def __init__(self, dp, variables, keep_dataset=False):
+    """
+    Selects a subset of variables from a xr.Dataset.
+    """
+
+    def __init__(self, dp, variables):
+        """
+        Variables can be a string, a list of strings, or a dictionary mapping new names to variable names.
+        If a string is given, the variable is returned as a xr.DataArray.
+        If a list of strings is given, the variables are returned as a xr.Dataset.
+        If a dictionary is given, the variables are returned as a dictionary mapping the keys to either xr.DataArray or xr.Dataset.
+        """
         self.dp = dp
         self.variables = variables
-        self.keep_dataset = keep_dataset
 
     def _select_vars(self, ds, vars):
-        vars = _as_iterable(vars)
-
         ds_new = ds.copy()  # only copies metadata
         new_vars = []
+
+        to_data_array = False
+        if isinstance(vars, str):
+            vars = [vars]
+            to_data_array = True
+
         for var in vars:
             if var in ds.coords:
                 ds_new[var + '_coord'] = ds[var]
@@ -68,7 +81,7 @@ class XrVariableSelecter(IterDataPipe):
             else:
                 new_vars.append(var)
 
-        if len(new_vars) == 1 and not self.keep_dataset:
+        if to_data_array:
             return ds_new[new_vars[0]]
         else:
             return ds_new[new_vars]
