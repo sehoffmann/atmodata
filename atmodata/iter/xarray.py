@@ -372,3 +372,33 @@ class XrDimRenamer(IterDataPipe):
     def __iter__(self):
         for ds in self.dp:
             yield ds.rename(self.dims_dict)
+
+
+@functional_datapipe('xr_broadcast')
+class XrBroadcaster(IterDataPipe):
+    """
+    Calls xr.broadcast on each element of the input datapipe.
+    If used on a single dataset, this will guarantee that all variables have the same dimensions.
+    """
+
+    def __init__(self, dp, **kwargs):
+        self.dp = dp
+        self.kwargs = kwargs
+
+    def __iter__(self):
+        for tupel_or_ds in self.dp:
+            if isinstance(tupel_or_ds, (xr.Dataset, xr.DataArray)):
+                yield xr.broadcast(tupel_or_ds, **self.kwargs)[0]
+            else:
+                yield xr.broadcast(*tupel_or_ds, **self.kwargs)
+
+
+@functional_datapipe('xr_transpose')
+class XrTransposer(IterDataPipe):
+    def __init__(self, dp, *dims):
+        self.dp = dp
+        self.dims = dims
+
+    def __iter__(self):
+        for ds in self.dp:
+            yield ds.transpose(*self.dims)
