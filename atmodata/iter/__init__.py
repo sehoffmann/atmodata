@@ -32,6 +32,7 @@ from atmodata.iter.util import (
     TupleAssurer,
 )
 from atmodata.iter.xarray import (
+    XrAstype,
     XrBroadcaster,
     XrDimRenamer,
     XrExtractTimeseries,
@@ -65,6 +66,7 @@ __all__ = [
     'ThSplitter',
     'ThToDevice',
     'TupleAssurer',
+    'XrAstype',
     'XrBroadcaster',
     'XrDimRenamer',
     'XrExtractTimeseries',

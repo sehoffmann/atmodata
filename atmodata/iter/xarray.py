@@ -402,3 +402,14 @@ class XrTransposer(IterDataPipe):
     def __iter__(self):
         for ds in self.dp:
             yield ds.transpose(*self.dims)
+
+
+@functional_datapipe('xr_astype')
+class XrAstype(IterDataPipe):
+    def __init__(self, dp, dtype):
+        self.dp = dp
+        self.dtype = dtype
+
+    def __iter__(self):
+        for ds in self.dp:
+            yield ds.astype(self.dtype)
