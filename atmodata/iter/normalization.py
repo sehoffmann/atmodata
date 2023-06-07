@@ -50,6 +50,37 @@ class NormalizationPipe(IterDataPipe):
             yield self.normalize(x)
 
 
+class XrManualZScoreNormalization(NormalizationPipe):
+    def __init__(self, dp, means, stds, inplace=False):
+        super().__init__(dp)
+        self.means = means
+        self.stds = stds
+        self.inplace = inplace
+
+    def normalize(self, x):
+        if not self.inplace:
+            x = x.copy()
+        for var in x.data_vars:
+            if var not in self.means:
+                continue
+            data = x[var] if self.inplace else x[var].copy()
+            data -= self.means[var]
+            data /= self.stds[var]
+            x[var] = data
+        return x
+
+    def denormalize(self, x):
+        if not self.inplace:
+            x = x.copy()
+        for var in x.data_vars:
+            if var not in self.means:
+                continue
+            data = x[var] if self.inplace else x[var].copy()
+            data *= self.stds[var]
+            data += self.means[var]
+        return x
+
+
 @functional_datapipe('xr_normalize_zscore')
 class XrZScoreNormalization(NormalizationPipe):
     def __init__(self, dp, statistics, spatially_resolved=False, variables=None):
