@@ -413,3 +413,15 @@ class XrAstype(IterDataPipe):
     def __iter__(self):
         for ds in self.dp:
             yield ds.astype(self.dtype)
+
+
+@functional_datapipe('xr_fillna')
+class XrNaNFiller(IterDataPipe):
+    def __init__(self, dp, fill_value=0):
+        super().__init__()
+        self.dp = dp
+        self.fill_value = fill_value
+
+    def __iter__(self):
+        for ds in self.dp:
+            yield ds.fillna(self.fill_value)
