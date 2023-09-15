@@ -66,7 +66,7 @@ class Reducer:
 
     DEFAULT = tuple()
 
-    def __init__(self, default_axis=None, pca=False, pca_components=None, pca_batch_size=1000):
+    def __init__(self, data=None, default_axis=None, pca=False, pca_components=None, pca_batch_size=1000):
         self.default_axis = default_axis
         if pca:
             self.num_pca_components = pca_components
@@ -81,6 +81,9 @@ class Reducer:
         self._M2 = None
         self.min = None
         self.max = None
+
+        if data is not None:
+            self.update(data)
 
     @property
     def pca(self):
@@ -138,6 +141,21 @@ class Reducer:
             return None
         return self._pca.noise_variance_
 
+    def update_(self, mean, M2, min, max, num_samples):
+        if self.num_samples == 0:
+            if self._pca is None:
+                self._mean = mean
+                self._M2 = M2
+            self.min = min
+            self.max = max
+            self.num_samples = num_samples
+        else:
+            if self._pca is None:
+                self._mean, self._M2 = combine_mean_and_M2(self.num_samples, self.mean, self._M2, num_samples, mean, M2)
+            self.min = np.minimum(self.min, min)
+            self.max = np.maximum(self.max, max)
+            self.num_samples += num_samples
+
     def update(self, data, axis=DEFAULT):
         if axis is self.DEFAULT:
             axis = self.default_axis
@@ -161,7 +179,6 @@ class Reducer:
                 f'PCA will result in an exorbitant number of components ({num_pca_components}). Explicitely set the number of components to supress this warning.'
             )
 
-        N_old = self.num_samples
         k = int(np.prod(data.shape) // np.prod(reduced_shape))
 
         if self._pca is None:
@@ -173,20 +190,14 @@ class Reducer:
         if self._pca is not None:
             flattened = np.moveaxis(data, axis, 0).reshape((k, -1))
             self._pca.partial_fit(flattened)
+        self.update_(data_mean, data_M2, data_min, data_max, k)
 
-        if self.num_samples == 0:
-            if self._pca is None:
-                self._mean = data_mean
-                self._M2 = data_M2
-            self.min = data_min
-            self.max = data_max
-        else:
-            if self._pca is None:
-                self._mean, self._M2 = combine_mean_and_M2(N_old, self.mean, self._M2, k, data_mean, data_M2)
-            self.min = np.minimum(self.min, data_min)
-            self.max = np.maximum(self.max, data_max)
-
-        self.num_samples = N_old + k
+    def combine_(self, other):
+        """
+        Update statistics by combining them with another Reducer.
+        """
+        assert not self.pca and not other.pca, 'Cannot combine PCA reducers yet.'
+        self.update_(other._mean, other._M2, other.min, other.max, other.num_samples)
 
 
 class DatasetReducer:
@@ -354,6 +365,12 @@ class StatisticsSaver:
             datasets += [hourly]
 
         return xr.merge(datasets)
+
+    def print(self):
+        means = self.statistics[[var for var in self.statistics.data_vars if var.endswith('.mean')]].mean()
+        stds = self.statistics[[var for var in self.statistics.data_vars if var.endswith('.std')]].mean()
+        print(means)
+        print(stds)
 
     def save(self, path):
         self.statistics.to_netcdf(path)
